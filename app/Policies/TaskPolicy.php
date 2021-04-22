@@ -36,15 +36,7 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('manager')) {
-            return true;
-        }
-
-        if ($user->hasRole('user')) {
+        if ($user->hasRole('admin') or $user->hasRole('manager') or $user->hasRole('user')) {
             return true;
         }
 
@@ -68,15 +60,7 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('manager')) {
-            return true;
-        }
-
-        if ($user->hasRole('user')) {
+        if ($user->hasRole('admin') or $user->hasRole('manager') or $user->hasRole('user')) {
             return true;
         }
 
