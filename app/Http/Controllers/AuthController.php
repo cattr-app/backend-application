@@ -86,6 +86,7 @@ class AuthController extends BaseController
         if (!auth()->attempt([
             'email' => $credentials['email'],
             'password' => $credentials['password'],
+            'active' => 1
         ])) {
             $this->recaptcha->incrementCaptchaAmounts();
             $this->recaptcha->check($credentials);
@@ -93,10 +94,6 @@ class AuthController extends BaseController
         }
 
         $user = auth()->user();
-        if (!$user || !$user->active) {
-            $this->recaptcha->incrementCaptchaAmounts();
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED);
-        }
 
         if ($user->invitation_sent) {
             $user->invitation_sent = false;
@@ -118,16 +115,11 @@ class AuthController extends BaseController
         $credentials = $request->only(['email', 'password']);
 
         throw_unless(
-            auth()->attempt($credentials),
+            auth()->attempt(array_merge($credentials, ['active' => 1])),
             new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED)
         );
 
         $user = auth()->user();
-
-        throw_unless(
-            optional($user)->active,
-            new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED)
-        );
 
         if ($request->attributes->get('clientType') === 'desktop') {
             $user->client_installed = 1;
