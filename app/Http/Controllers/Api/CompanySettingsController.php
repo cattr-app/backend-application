@@ -11,11 +11,6 @@ use Settings;
 
 class CompanySettingsController extends Controller
 {
-    /**
-     * CompanySettingsController constructor.
-     *
-     * @param Priority $priorities
-     */
     public function __construct(protected Priority $priorities)
     {
         parent::__construct();

@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use App\Exceptions\Entities\AuthorizationException;
 use Eloquent as EloquentIdeHelper;
-use Exception;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -12,9 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use Auth;
 use Illuminate\Support\Carbon;
-use Throwable;
 
 /**
  * @apiDefine RoleObject

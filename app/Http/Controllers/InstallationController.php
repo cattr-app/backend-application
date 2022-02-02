@@ -9,13 +9,13 @@ use App\Helpers\EnvUpdater;
 use App\Http\Requests\Installation\CheckDatabaseInfoRequest;
 use App\Http\Requests\Installation\SaveSetupRequest;
 use Artisan;
-use Exception;
+use Illuminate\Database\Console\Migrations\MigrateCommand;
 use Illuminate\Foundation\Console\ConfigCacheCommand;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Settings;
-use Tymon\JWTAuth\Console\JWTGenerateSecretCommand;
+use Throwable;
 
 class InstallationController extends Controller
 {
@@ -32,9 +32,9 @@ class InstallationController extends Controller
             DB::reconnect('mysql');
             DB::connection('mysql')->getPDO();
 
-            return new JsonResponse(['status' => (bool)DB::connection()->getDatabaseName()]);
-        } catch (Exception) {
-            return new JsonResponse(['status' => false]);
+            return responder()->success(['status' => (bool)DB::connection()->getDatabaseName()])->respond();
+        } catch (Throwable) {
+            return responder()->success(['status' => false])->respond();
         }
     }
 
@@ -74,21 +74,20 @@ class InstallationController extends Controller
             'APP_DEBUG' => 'false',
         ]);
 
-        Artisan::call(JWTGenerateSecretCommand::class, ['--force' => true]);
         Artisan::call(ConfigCacheCommand::class);
 
         $connectionName = config('database.default');
-        $databaseName = config("database.connections.{$connectionName}.database");
+        $databaseName = config("database.connections.$connectionName.database");
 
-        config(["database.connections.{$connectionName}.database" => null]);
+        config(["database.connections.$connectionName.database" => null]);
         DB::purge();
 
         DB::statement("CREATE DATABASE IF NOT EXISTS $databaseName");
 
-        config(["database.connections.{$connectionName}.database" => $databaseName]);
+        config(["database.connections.$connectionName.database" => $databaseName]);
         DB::purge();
 
-        Artisan::call('migrate', ['--force' => true]);
+        Artisan::call(MigrateCommand::class, ['--force' => true]);
 
         Artisan::call(ResetCommand::class, ['--force' => true]);
 
@@ -101,6 +100,6 @@ class InstallationController extends Controller
             'email' => $request->input('email'),
         ]);
 
-        return new JsonResponse(['status' => true]);
+        return responder()->success()->respond(204);
     }
 }

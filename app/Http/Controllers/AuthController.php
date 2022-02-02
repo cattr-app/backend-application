@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Str;
 use Psr\SimpleCache\InvalidArgumentException;
+use Throwable;
 
 class AuthController extends BaseController
 {
@@ -29,6 +30,7 @@ class AuthController extends BaseController
     }
 
     /**
+     * @throws Throwable
      * @api            {post} /auth/login Login
      * @apiDescription Get user Token
      *
@@ -72,9 +74,10 @@ class AuthController extends BaseController
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        if ($request->attributes->get('clientType') !== 'web') {
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED);
-        }
+        throw_if(
+            $request->attributes->get('clientType') !== 'web',
+            new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED)
+        );
 
         $credentials = $request->only(['email', 'password', 'recaptcha']);
 
@@ -107,21 +110,24 @@ class AuthController extends BaseController
         return responder()->success()->respond(204);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function token(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->only(['email', 'password', 'recaptcha']);
+        $credentials = $request->only(['email', 'password']);
 
-        if (!auth()->attempt([
-            'email' => $credentials['email'],
-            'password' => $credentials['password'],
-        ])) {
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED);
-        }
+        throw_unless(
+            auth()->attempt($credentials),
+            new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED)
+        );
 
         $user = auth()->user();
-        if (!$user || !$user->active) {
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED);
-        }
+
+        throw_unless(
+            optional($user)->active,
+            new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED)
+        );
 
         if ($request->attributes->get('clientType') === 'desktop') {
             $user->client_installed = 1;
@@ -287,26 +293,30 @@ class AuthController extends BaseController
      * @return JsonResponse
      * @throws Exception
      * @throws InvalidArgumentException
+     * @throws Throwable
      */
     public function authDesktopKey(Request $request): JsonResponse
     {
         $token = $request->header('Authorization');
 
-        if (!$token) {
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED);
-        }
+        throw_unless(
+            $token,
+            new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED)
+        );
 
         $token = explode(' ', $token);
 
-        if (count($token) !== 2 || $token[0] !== 'desktop' || !cache()->has(sha1($request->ip()) . ":$token[1]")) {
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED);
-        }
+        throw_if(
+            count($token) !== 2 || $token[0] !== 'desktop' || !cache()->has(sha1($request->ip()) . ":$token[1]"),
+            new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED)
+        );
 
         $user = auth()->loginUsingId(cache(sha1($request->ip()) . ":$token[1]"));
 
-        if (!optional($user)->active) {
-            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED);
-        }
+        throw_unless(
+            optional($user)->active,
+            new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED)
+        );
 
         return responder()->success([
             'token' => $user->createToken(Str::uuid())->plainTextToken,

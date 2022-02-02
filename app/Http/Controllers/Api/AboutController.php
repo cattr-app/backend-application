@@ -17,20 +17,17 @@ use Settings;
 
 class AboutController extends Controller
 {
-    private Client $client;
-
     private ?string $statsRootUrl;
     private string $statsReleaseUrl;
     private string $statsImagesUrl;
     private string $statsModulesUrl;
 
-    public function __construct(Client $client)
+    public function __construct(private Client $client)
     {
         $this->statsRootUrl = config('app.stats_collector_url');
         $this->statsReleaseUrl = "$this->statsRootUrl/release/";
         $this->statsImagesUrl = "$this->statsRootUrl/image/";
         $this->statsModulesUrl = "$this->statsRootUrl/modules/";
-        $this->client = $client;
     }
 
     /**
@@ -97,9 +94,7 @@ class AboutController extends Controller
     public function __invoke(): JsonResponse
     {
         if (!$this->statsRootUrl) {
-            return new JsonResponse([
-                'message' => 'Stats collector URL is not set'
-            ], 500);
+            return responder()->error(null, 'Stats collector URL is not set')->respond();
         }
 
         $instanceId = Settings::scope('core')->get('instance');
@@ -109,13 +104,11 @@ class AboutController extends Controller
             $releaseInfo = $this->requestReleaseInfo($instanceId);
             $modulesInfo = $this->requestModulesInfo($instanceId);
             $imageInfo = ($imageVersion) ? $this->requestImageInfo($imageVersion) : false;
-        } catch (Exception $e) {
-            return new JsonResponse([
-                'message' => 'Failed to get information from the server'
-            ]);
+        } catch (Exception) {
+            return responder()->error(null, 'Failed to get information from the server')->respond();
         }
 
-        return new JsonResponse([
+        return responder()->success([
             'app' => [
                 'version' => config('app.version'),
                 'instance_id' => $instanceId,
@@ -130,15 +123,16 @@ class AboutController extends Controller
                 'last_version' => $imageInfo['lastVersion'],
                 'message' => $imageInfo['flashMessage'],
             ]
-        ]);
+        ])->respond();
     }
 
     /**
      * @throws BindingResolutionException
+     * @throws Exception
      */
     public function storage(): JsonResponse
     {
-        return response()->json([
+        return responder()->success([
             'space' => [
                 'left' => StorageCleaner::getFreeSpace(),
                 'used' => StorageCleaner::getUsedSpace(),
@@ -151,13 +145,13 @@ class AboutController extends Controller
                 'now' => cache('thinning_now'),
                 'last' => cache('last_thin'),
             ]
-        ]);
+        ])->respond();
     }
 
     public function startStorageClean(): JsonResponse
     {
         Artisan::queue(RotateScreenshots::class);
 
-        return response()->json(['message' => 'Ok']);
+        return responder()->success()->respond(204);
     }
 }
