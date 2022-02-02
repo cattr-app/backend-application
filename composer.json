@@ -1,7 +1,7 @@
 {
     "name": "cattr/backend-application",
     "description": "Backend Application for Cattr",
-    "version": "4.0.0-alpha",
+    "version": "4.0.0-alpha.pre",
     "license": "SSPL-1.0",
     "type": "project",
     "require": {
@@ -13,7 +13,7 @@
         "erusev/parsedown": "^1.7",
         "fakerphp/faker": "^1.16",
         "flugger/laravel-responder": "^3.1",
-        "fruitcake/laravel-cors": "^1.0",
+        "fruitcake/laravel-cors": "^2.0",
         "grimzy/laravel-mysql-spatial": "^5.0",
         "intervention/image": "^2.5",
         "joshbrw/laravel-module-installer": "^2.0.1",
@@ -24,6 +24,7 @@
         "nwidart/laravel-modules": "^8",
         "php-http/guzzle6-adapter": "^2.0",
         "predis/predis": "^1.1",
+        "rebing/graphql-laravel": "^8.2",
         "sentry/sentry-laravel": "^2.1",
         "webpatser/laravel-uuid": "^4.0",
         "wikimedia/composer-merge-plugin": "2.0.1"

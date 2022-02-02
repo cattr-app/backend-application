@@ -3,13 +3,13 @@
 namespace App\Http;
 
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CheckRequestClientType;
+use App\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use App\Http\Middleware\SentryContext;
 use App\Http\Middleware\TrimStrings;
 use Fruitcake\Cors\HandleCors;
 use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
 use Illuminate\Auth\Middleware\Authorize;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode;
 use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
@@ -18,11 +18,8 @@ use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Middleware\ValidateSignature;
-use Illuminate\Session\Middleware\StartSession;
-use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 class Kernel extends HttpKernel
 {
@@ -34,6 +31,7 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middleware = [
+        CheckRequestClientType::class,
         CheckForMaintenanceMode::class,
         ValidatePostSize::class,
         TrimStrings::class,
@@ -41,26 +39,7 @@ class Kernel extends HttpKernel
         HandleCors::class,
         SentryContext::class,
         TrustProxies::class,
-    ];
-
-    /**
-     * The application's route middleware groups.
-     *
-     * @var array
-     */
-    protected $middlewareGroups = [
-        'web' => [
-            EncryptCookies::class,
-            AddQueuedCookiesToResponse::class,
-            StartSession::class,
-            ShareErrorsFromSession::class,
-            SubstituteBindings::class,
-        ],
-
-        'api' => [
-            SubstituteBindings::class,
-            EnsureFrontendRequestsAreStateful::class,
-        ],
+        EnsureFrontendRequestsAreStateful::class,
     ];
 
     /**

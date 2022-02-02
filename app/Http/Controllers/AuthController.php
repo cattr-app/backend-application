@@ -72,6 +72,10 @@ class AuthController extends BaseController
      */
     public function login(LoginRequest $request): JsonResponse
     {
+        if ($request->attributes->get('clientType') !== 'web') {
+            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED);
+        }
+
         $credentials = $request->only(['email', 'password', 'recaptcha']);
 
         $this->recaptcha->check($credentials);
@@ -98,7 +102,28 @@ class AuthController extends BaseController
 
         $this->recaptcha->clearCaptchaAmounts();
 
-        if (preg_match('/' . config('auth.cattr-client-agent') . '/', $request->header('User_agent'))) {
+        $request->session()->regenerate();
+
+        return responder()->success()->respond(204);
+    }
+
+    public function token(LoginRequest $request): JsonResponse
+    {
+        $credentials = $request->only(['email', 'password', 'recaptcha']);
+
+        if (!auth()->attempt([
+            'email' => $credentials['email'],
+            'password' => $credentials['password'],
+        ])) {
+            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_UNAUTHORIZED);
+        }
+
+        $user = auth()->user();
+        if (!$user || !$user->active) {
+            throw new AuthorizationException(AuthorizationException::ERROR_TYPE_USER_DISABLED);
+        }
+
+        if ($request->attributes->get('clientType') === 'desktop') {
             $user->client_installed = 1;
             $user->save();
         }

@@ -24,7 +24,7 @@ class UserFactory extends Factory
         return [
             'full_name' => $this->faker->name,
             'email' => $this->faker->unique()->safeEmail,
-            'password' => 'password',
+            'password' => hash('sha512', 'password'),
             'type' => 'employee',
             'company_id' => 1,
             'role_id' => 2,

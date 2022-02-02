@@ -33,7 +33,10 @@ return [
         ],
     ],
 
-    'cattr-client-agent' => 'Cattr\-Desktop\/v*',
+    'clients' => [
+        'desktop' => 'Cattr\-Desktop\/v*',
+        'web' => 'Cattr\-Web\/v*',
+    ],
 
     'lifetime_minutes' => [
         'desktop_token' => env('AUTH_DESKTOP_TOKEN_LIFETIME_MINUTES', 10),

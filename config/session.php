@@ -12,7 +12,7 @@ return [
     'lottery' => [2, 100],
     'cookie' => 'laravel_session',
     'path' => '/',
-    'domain' => env('SESSION_DOMAIN', null),
+    'domain' => env('SESSION_DOMAIN'),
     'secure' => env('SESSION_SECURE_COOKIE', false),
     'http_only' => true,
 
