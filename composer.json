@@ -1,11 +1,11 @@
 {
     "name": "cattr/backend-application",
     "description": "Backend Application for Cattr",
-    "version": "4.0.0-alpha.pre",
+    "version": "4.0.0-alpha",
     "license": "SSPL-1.0",
     "type": "project",
     "require": {
-        "php": "^8.0",
+        "php": "^8.0.2",
         "ext-gd": "*",
         "ext-json": "*",
         "ext-pdo": "*",
