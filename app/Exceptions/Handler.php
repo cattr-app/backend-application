@@ -2,24 +2,22 @@
 
 namespace App\Exceptions;
 
-use App\Exceptions\Entities\MethodNotAllowedException;
-use App\Exceptions\Interfaces\InfoExtendedException;
-use App\Exceptions\Interfaces\TypedException;
-use Error;
+use App\Exceptions\Entities\AuthorizationException as AppAuthorizationException;
+use App\Exceptions\Entities\DatabaseException;
+use App\Exceptions\Entities\GraphQLBatchingException;
 use Exception;
 use Flugg\Responder\Exceptions\ConvertsExceptions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Doctrine\DBAL\Driver\Exception as DoctrineException;
 use Throwable;
 
 /**
@@ -81,9 +79,10 @@ class Handler extends ExceptionHandler
     public function render($request, $e): Response
     {
         $this->convert($e, [
-            MethodNotAllowedHttpException::class => fn($e) => throw new MethodNotAllowedException($e->getMessage()),
+            MethodNotAllowedHttpException::class => fn($e) => throw new GraphQLBatchingException($e->getMessage()),
             AuthenticationException::class => fn($e
-            ) => throw new Entities\AuthorizationException(Entities\AuthorizationException::ERROR_TYPE_UNAUTHORIZED),
+            ) => throw new AppAuthorizationException(AppAuthorizationException::ERROR_TYPE_UNAUTHORIZED),
+            DoctrineException::class => fn($e) => throw new DatabaseException($e->getMessage())
         ]);
 
         $this->convertDefaultException($e);

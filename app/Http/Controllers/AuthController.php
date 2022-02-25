@@ -102,7 +102,8 @@ class AuthController extends BaseController
 
         $this->recaptcha->clearCaptchaAmounts();
 
-        $request->session()->regenerate();
+        session()->regenerate();
+        session(['client' => $request->attributes->get('client')]);
 
         return responder()->success()->respond(204);
     }
@@ -194,10 +195,6 @@ class AuthController extends BaseController
      * @apiUse         400Error
      * @apiUse         UnauthorizedError
      */
-    public function me(Request $request): JsonResponse
-    {
-        return responder()->success($request->user())->respond();
-    }
 
     /**
      * @api            {get} /auth/desktop-key Issue key

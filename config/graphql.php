@@ -3,35 +3,17 @@
 declare(strict_types = 1);
 
 use App\GraphQL\Schemas\UserSchema;
+use App\GraphQL\Types\UserType;
+use Rebing\GraphQL\GraphQL;
 use Rebing\GraphQL\GraphQLController;
 use Rebing\GraphQL\Support\ExecutionMiddleware\AddAuthUserContextValueMiddleware;
 use Rebing\GraphQL\Support\ExecutionMiddleware\AutomaticPersistedQueriesMiddleware;
 use Rebing\GraphQL\Support\ExecutionMiddleware\ValidateOperationParamsMiddleware;
+use Rebing\GraphQL\Support\PaginationType;
+use Rebing\GraphQL\Support\SimplePaginationType;
 
 return [
-    'route' => [
-        // The prefix for routes; do NOT use a leading slash!
-        'prefix' => 'graphql',
-
-        // The controller/method to use in GraphQL request.
-        'controller' => GraphQLController::class . '@query',
-
-        // Any middleware for the graphql route group
-        // This middleware will apply to all schemas
-        'middleware' => [],
-
-        // Additional route group attributes
-        //
-        // Example:
-        //
-        // 'group_attributes' => ['guard' => 'api']
-        //
-        'group_attributes' => [],
-    ],
-
-    // The name of the default schema
-    // Used when the route group is directly accessed
-    'default_schema' => 'default',
+    'route' => false,
 
     'batching' => [
         // Whether to support GraphQL batching or not.
@@ -99,7 +81,7 @@ return [
             // An array of middlewares, overrides the global ones
             'execution_middleware' => null,
         ],
-        // 'user' => UserSchema::class,
+        'user' => UserSchema::class,
     ],
 
     // The global types available to all schemas.
@@ -112,7 +94,7 @@ return [
     // ]
     //
     'types' => [
-        \App\GraphQL\Types\UserType::class,
+        UserType::class,
         // ExampleType::class,
         // ExampleRelationType::class,
         // \Rebing\GraphQL\Support\UploadType::class,
@@ -130,7 +112,7 @@ return [
     //     'message' => '',
     //     'locations' => []
     // ]
-    'error_formatter' => [\Rebing\GraphQL\GraphQL::class, 'formatError'],
+    'error_formatter' => [GraphQL::class, 'formatError'],
 
     /*
      * Custom Error Handling
@@ -139,7 +121,7 @@ return [
      *
      * The default handler will pass exceptions to laravel Error Handling mechanism
      */
-    'errors_handler' => [\Rebing\GraphQL\GraphQL::class, 'handleErrors'],
+    'errors_handler' => [GraphQL::class, 'handleErrors'],
 
     /*
      * Options to limit the query complexity and depth. See the doc
@@ -156,13 +138,13 @@ return [
      * You can define your own pagination type.
      * Reference \Rebing\GraphQL\Support\PaginationType::class
      */
-    'pagination_type' => \Rebing\GraphQL\Support\PaginationType::class,
+    'pagination_type' => PaginationType::class,
 
     /*
      * You can define your own simple pagination type.
      * Reference \Rebing\GraphQL\Support\SimplePaginationType::class
      */
-    'simple_pagination_type' => \Rebing\GraphQL\Support\SimplePaginationType::class,
+    'simple_pagination_type' => SimplePaginationType::class,
 
     /*
      * Config for GraphiQL (see (https://github.com/graphql/graphiql).
@@ -172,7 +154,7 @@ return [
         'controller' => GraphQLController::class . '@graphiql',
         'middleware' => [],
         'view' => 'graphql::graphiql',
-        'display' => env('ENABLE_GRAPHIQL', true),
+        'display' => env('ENABLE_GRAPHIQL', false),
     ],
 
     /*

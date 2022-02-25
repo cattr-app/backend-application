@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Scopes\ScreenshotScope;
+use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,9 +20,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null            $created_at
  * @property Carbon|null            $updated_at
  * @property-read TimeInterval|null $timeInterval
+ * @property-read User              $user
  * @method static Builder|TrackedApplication newModelQuery()
  * @method static Builder|TrackedApplication newQuery()
- * @method static \Illuminate\Database\Query\Builder|TrackedApplication onlyTrashed()
  * @method static Builder|TrackedApplication query()
  * @method static Builder|TrackedApplication whereCreatedAt($value)
  * @method static Builder|TrackedApplication whereExecutable($value)
@@ -29,10 +30,10 @@ use Illuminate\Support\Carbon;
  * @method static Builder|TrackedApplication whereTimeIntervalId($value)
  * @method static Builder|TrackedApplication whereTitle($value)
  * @method static Builder|TrackedApplication whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Query\Builder|TrackedApplication onlyTrashed()
  * @method static \Illuminate\Database\Query\Builder|TrackedApplication withTrashed()
  * @method static \Illuminate\Database\Query\Builder|TrackedApplication withoutTrashed()
- * @mixin \Eloquent
- * @property-read \App\Models\User $user
+ * @mixin Eloquent
  */
 class TrackedApplication extends Model
 {
@@ -40,17 +41,19 @@ class TrackedApplication extends Model
 
     protected $table = 'tracked_applications';
 
-    protected $fillable = [
-        'title',
-        'executable',
-        'user_id',
-    ];
+    protected $fillable
+        = [
+            'title',
+            'executable',
+            'user_id',
+        ];
 
-    protected $dates = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-    ];
+    protected $dates
+        = [
+            'created_at',
+            'updated_at',
+            'deleted_at',
+        ];
 
     protected static function boot(): void
     {

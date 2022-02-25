@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 
-class CheckRequestClientType
+class CheckRequestClient
 {
     /**
      * Handle an incoming request.
@@ -17,15 +17,12 @@ class CheckRequestClientType
      */
     public function handle(Request $request, Closure $next): mixed
     {
-        $client = null;
-
         foreach (config('auth.clients') as $key => $value) {
             if (preg_match("/$value/", $request->header('user-agent'))) {
-                $client = $key;
+                $request->attributes->set('clientType', $key);
+                $request->attributes->set('client', $request->header('user-agent'));
             }
         }
-
-        $request->attributes->set('clientType', $client);
 
         return $next($request);
     }

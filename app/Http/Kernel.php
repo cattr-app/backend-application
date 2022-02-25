@@ -3,7 +3,7 @@
 namespace App\Http;
 
 use App\Http\Middleware\Authenticate;
-use App\Http\Middleware\CheckRequestClientType;
+use App\Http\Middleware\CheckRequestClient;
 use App\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use App\Http\Middleware\SentryContext;
 use App\Http\Middleware\TrimStrings;
@@ -31,7 +31,7 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middleware = [
-        CheckRequestClientType::class,
+        CheckRequestClient::class,
         CheckForMaintenanceMode::class,
         ValidatePostSize::class,
         TrimStrings::class,

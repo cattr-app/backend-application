@@ -20,9 +20,6 @@ use Settings;
  * Class TaskCommentController
  * @deprecated
  * @codeCoverageIgnore
- *
- * @codeCoverageIgnore
- * @deprecated
  */
 class TaskCommentController extends ItemController
 {
