@@ -39,7 +39,8 @@ class StatusController extends Controller
             'cattr' => true,
             'cat' => CatHelper::getCat(),
             'version' => config('app.version'),
-            'installed' => (bool)Settings::scope('core')->get('installed'),
+            'installed' => (bool)Settings::scope('core')->get('installed', false),
+            'authorized' => auth()->check(),
         ])->respond();
     }
 }
