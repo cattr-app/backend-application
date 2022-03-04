@@ -1,7 +1,7 @@
 "A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
 scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
 "Mixed object"
-scalar Mixed @scalar(class: "MLL\\GraphQLScalars\\MixedScalar")
+scalar Email @scalar(class: "MLL\\GraphQLScalars\\Email")
 
 "Indicates what fields are available at the top level of a query operation."
 type Query {

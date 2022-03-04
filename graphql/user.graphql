@@ -27,7 +27,7 @@ type User {
   full_name: String!
 
   "Unique email address."
-  email: String!
+  email: Email!
 
   "When the account was created."
   created_at: DateTime!
