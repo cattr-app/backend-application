@@ -22,6 +22,7 @@
     "laravel/sanctum": "^2.14",
     "laravel/telescope": "^v4.7.4",
     "laravel/tinker": "^2.7.0",
+    "mll-lab/graphql-php-scalars": "^5.4",
     "nuwave/lighthouse": "^5.42",
     "nwidart/laravel-modules": "^9",
     "php-http/guzzle7-adapter": "^1.0",
@@ -58,6 +59,7 @@
     "dumphelpers": [
       "@php artisan ide-helper:generate",
       "@php artisan ide-helper:meta",
+      "@php artisan ide-helper:eloquent",
       "@php artisan lighthouse:ide-helper"
     ],
     "config:init": [
@@ -72,14 +74,11 @@
     ],
     "post-install-cmd": [
       "Illuminate\\Foundation\\ComposerScripts::postInstall",
-      "@config:update",
-      "cghooks add --ignore-lock",
-      "cghooks update"
+      "@config:update"
     ],
     "post-update-cmd": [
       "Illuminate\\Foundation\\ComposerScripts::postUpdate",
-      "@config:update",
-      "cghooks update"
+      "@config:update"
     ]
   },
   "config": {

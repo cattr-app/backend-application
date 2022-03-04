@@ -46,3 +46,6 @@ Modules/*
 bootstrap/cache/*
 !bootstrap/cache/.gitkeep
 /public/vendor/
+/_lighthouse_ide_helper.php
+/programmatic-types.graphql
+/schema-directives.graphql

@@ -173,7 +173,6 @@ return [
         'password' => 'Пароль',
         'timezone' => 'Часовая пояс',
         'important' => 'Важно',
-        'change_password' => 'Обязать пользователя сменить пароль',
         'role_id' => 'Роль',
         'user_language' => 'Язык пользователя',
 

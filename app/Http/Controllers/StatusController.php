@@ -6,7 +6,6 @@ use App\Helpers\CatHelper;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Filter;
 use Settings;
 
 class StatusController extends Controller

@@ -1,0 +1,16 @@
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+"Mixed object"
+scalar Mixed @scalar(class: "MLL\\GraphQLScalars\\MixedScalar")
+
+"Indicates what fields are available at the top level of a query operation."
+type Query {
+  status: Status
+}
+
+type Status {
+  cat: String @method
+  cattr: Boolean @method
+}
+
+#import user.graphql

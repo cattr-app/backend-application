@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App;
+use App\Http\Responses\FractalResponse;
 use App\Models\User;
 use App\Observers\UserObserver;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Telescope\Console\PruneCommand;
+use Nuwave\Lighthouse\Support\Contracts\CreatesResponse;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,5 +33,7 @@ class AppServiceProvider extends ServiceProvider
                 $this->app->make(Schedule::class)->command(PruneCommand::class)->daily();
             });
         }
+
+        $this->app->bind(CreatesResponse::class, FractalResponse::class);
     }
 }

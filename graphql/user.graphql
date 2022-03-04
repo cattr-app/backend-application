@@ -1,0 +1,43 @@
+extend type Query {
+  "Get current authorized user"
+  me: User @auth
+
+  "Find a single user by an identifying attribute."
+  user(
+    "Search by primary key."
+    id: ID @eq @rules(apply: ["prohibits:email", "required_without:email"])
+
+    "Search by email address."
+    email: String @eq @rules(apply: ["prohibits:id", "required_without:id", "email"])
+  ): User @find
+
+  "List multiple users."
+  users(
+    "Filters by name. Accepts SQL LIKE wildcards `%` and `_`."
+    name: String @where(operator: "like")
+  ): [User!]! @paginate(defaultCount: 10)
+}
+
+"Account of a person who utilizes this application."
+type User {
+  "Unique primary key."
+  id: ID!
+
+  "Non-unique name."
+  full_name: String!
+
+  "Unique email address."
+  email: String!
+
+  "When the account was created."
+  created_at: DateTime!
+
+  "When the account was last updated."
+  updated_at: DateTime!
+
+  "What interval should clients use for intervals"
+  interval_duration: Int
+
+  "Can account log in and track time"
+  active: Boolean
+}

@@ -111,7 +111,7 @@ class StorageCleaner
 
     private static function getScreenshotsCollection(): Builder|TimeInterval|\Illuminate\Database\Query\Builder
     {
-        return TimeInterval::whereHas('task', function (Builder $query) {
+        return TimeInterval::whereHas('task', static function (Builder $query) {
             $query->where('important', '=', 0);
         })
             ->whereHas('task.project', function (Builder $query) {

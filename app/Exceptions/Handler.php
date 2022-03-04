@@ -4,7 +4,8 @@ namespace App\Exceptions;
 
 use App\Exceptions\Entities\AuthorizationException as AppAuthorizationException;
 use App\Exceptions\Entities\DatabaseException;
-use App\Exceptions\Entities\GraphQLBatchingException;
+use App\Exceptions\Entities\GraphQLRequestException;
+use App\Exceptions\Entities\MethodNotAllowedException;
 use Exception;
 use Flugg\Responder\Exceptions\ConvertsExceptions;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -79,7 +80,7 @@ class Handler extends ExceptionHandler
     public function render($request, $e): Response
     {
         $this->convert($e, [
-            MethodNotAllowedHttpException::class => fn($e) => throw new GraphQLBatchingException($e->getMessage()),
+            MethodNotAllowedHttpException::class => fn($e) => throw new MethodNotAllowedException($e->getMessage()),
             AuthenticationException::class => fn($e
             ) => throw new AppAuthorizationException(AppAuthorizationException::ERROR_TYPE_UNAUTHORIZED),
             DoctrineException::class => fn($e) => throw new DatabaseException($e->getMessage())

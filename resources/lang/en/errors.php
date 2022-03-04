@@ -19,4 +19,9 @@ return [
     'relation_not_found' => 'The requested relation does not exist.',
     'validation_failed' => 'The given data failed to pass validation.',
 
+    'http' => [
+        'request' => [
+            'graphql' => 'You have an error in your graphql query',
+        ]
+    ]
 ];

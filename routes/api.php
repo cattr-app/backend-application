@@ -1,8 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\AboutController;
-use App\Http\Controllers\Api\CompanySettingsController;
-use App\Http\Controllers\Api\GraphQLController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InstallationController;
 use App\Http\Controllers\PasswordResetController;
@@ -45,9 +42,5 @@ Route::group(['prefix' => 'setup'], static function (Router $router) {
     $router->post('database', [InstallationController::class, 'checkDatabaseInfo']);
     $router->put('save', [InstallationController::class, 'save']);
 });
-
-Route::middleware([EnsureIsInstalled::class, 'auth:sanctum'])
-    ->post('graphql/{schema}', [GraphQLController::class, '__invoke'])
-    ->whereAlpha('schema');
 
 Route::any('(.*)', [Controller::class, 'universalRoute']);
