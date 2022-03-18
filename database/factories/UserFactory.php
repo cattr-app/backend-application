@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -25,8 +26,7 @@ class UserFactory extends Factory
             'full_name' => $this->faker->name,
             'email' => $this->faker->unique()->safeEmail,
             'password' => hash('sha512', 'password'),
-            'type' => 'employee',
-            'company_id' => 1,
+            'type' => UserType::EMPLOYEE,
             'role_id' => 2,
             'active' => true,
             'is_admin' => false,

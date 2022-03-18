@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Helpers\SettingsProviderService;
 use App\Models\Setting;
-use App\Services\SettingsProviderService;
 use Tests\TestCase;
 
 class SettingsTest extends TestCase

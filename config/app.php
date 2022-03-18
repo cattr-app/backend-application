@@ -61,6 +61,7 @@ return [
         App\Providers\FilterServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\TelescopeServiceProvider::class,
+        App\Providers\IntervalProofsProvider::class,
 
         App\Providers\SettingsServiceProvider::class,
         App\Providers\ScreenshotsServiceProvider::class,

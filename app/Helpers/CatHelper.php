@@ -21,7 +21,7 @@ class CatHelper
         '(=ↀωↀ=)',
         '(=^･ω･^=)',
         '(=^･ｪ･^=)',
-        'ㅇㅅㅇ'
+        'ㅇㅅㅇ',
     ];
 
     public static function getCat(): string

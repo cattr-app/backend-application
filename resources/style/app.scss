@@ -1,0 +1,39 @@
+#loader.done {
+  opacity: 0;
+}
+
+html, body, #app {
+  @apply h-full
+}
+
+#app {
+  @apply bg-gray-100 dark:bg-stone-800 dark:text-white
+}
+
+.o-input, .o-btn {
+  @apply rounded-lg px-2 py-1
+}
+
+.o-input {
+  @apply border-2 bg-white dark:bg-zinc-900 dark:border-0
+}
+
+.o-field__label {
+  @apply uppercase text-xs m-1 mb-2 text-neutral-400
+}
+
+.o-field:not(:last-child) {
+  @apply mb-6
+}
+
+.o-field__message {
+  @apply absolute ml-2
+}
+
+.o-input.password + .o-icon {
+  @apply text-neutral-400
+}
+
+a {
+  @apply text-cyan-600
+}

@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\SettingsProvider;
+use App\Services\SettingsProviderService;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
-use App\Services\SettingsProviderService;
-use App\Contracts\SettingsProvider;
 
 class SettingsServiceProvider extends ServiceProvider implements DeferrableProvider
 {

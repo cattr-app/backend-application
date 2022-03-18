@@ -1,17 +1,12 @@
 {
-  "name": "cattr-backend",
-  "version": "4.0.0-alpha",
+  "name": "@amazingcat/cattr-frontend",
+  "version": "5.0.0-alpha",
   "author": "team@amazingcat.net",
-  "license": "SSPL-1.0",
+  "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "api": "php -r \"if (!file_exists(__DIR__.'/public/apidoc')) { mkdir(__DIR__.'/apidoc') ; symlink(__DIR__.'/apidoc/', __DIR__.'/public/apidoc'); }\" ; node node_modules/apidoc/bin/apidoc -i app/ -o apidoc",
-    "api-nsl": "node node_modules/apidoc/bin/apidoc -i app/ -o apidoc",
-    "custom-api": "node node_modules/grunt-apidoc/bin/grunt-apidoc apidoc"
-  },
-  "apidoc": {
-    "template": {
-      "forceLanguage": "en"
-    }
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "husky": {
     "hooks": {
@@ -23,14 +18,43 @@
     }
   },
   "dependencies": {
-    "apidoc": "^0.50.3",
-    "laravel-echo-server": "^1.6.2"
+    "@apollo/client": "^3.5",
+    "@mdi/font": "^6.5",
+    "@oruga-ui/oruga-next": "^0.5",
+    "@vee-validate/i18n": "^4.5",
+    "@vue/apollo-composable": "^4.0.0-alpha.16",
+    "apollo-link-rest": "^0.9.0-rc.1",
+    "axios": "^0.25",
+    "graphql": "^15.3",
+    "graphql-tag": "^2.12",
+    "laravel-vue-i18n": "^1.2.0",
+    "lodash": "^4.17",
+    "pinia": "^2.0",
+    "pinia-plugin-persistedstate": "^1.2",
+    "vee-validate": "^4.5",
+    "vite-plugin-laravel": "^0.2.0-beta.9",
+    "vue": "^3.2",
+    "vue-router": "^4.0",
+    "yup": "^0.32"
   },
   "devDependencies": {
-    "@commitlint/cli": "^16.0.2",
-    "@commitlint/config-conventional": "^16.0.0",
-    "grunt": "^1.4.1",
-    "grunt-apidoc": "^0.11.0",
-    "husky": "^7.0.4"
+    "@commitlint/cli": "^16.0",
+    "@commitlint/config-conventional": "^16.0",
+    "@types/node": "^17.0",
+    "@vitejs/plugin-vue": "^2.0",
+    "@vitejs/plugin-vue-jsx": "^1.3",
+    "autoprefixer": "^10.4",
+    "chokidar": "^3.5",
+    "graphql-anywhere": "^4.2",
+    "grunt": "^1.4",
+    "grunt-apidoc": "^0.11",
+    "husky": "^7.0",
+    "postcss": "^8.4",
+    "qs": "^6.10",
+    "sass": "^1.49",
+    "tailwindcss": "^3.0",
+    "typescript": "^4.5",
+    "vite": "^2.7",
+    "vue-tsc": "^0.32"
   }
 }
