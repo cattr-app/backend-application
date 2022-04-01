@@ -312,7 +312,7 @@ class User extends Authenticatable
     {
         return Attribute::get(
             static fn($value, $attributes) => isset($attributes['last_activity']) &&
-                $attributes['last_activity']->diffInSeconds(Carbon::now()) < config('app.user_activity.online_status_time')
+                Carbon::make($attributes['last_activity'])->diffInSeconds(Carbon::now()) < config('app.user_activity.online_status_time')
         );
     }
 

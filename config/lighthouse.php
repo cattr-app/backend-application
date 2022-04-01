@@ -152,7 +152,7 @@ return [
         /*
          * Allows using a specific cache store, uses the app's default if set to null.
          */
-        'store' => env('LIGHTHOUSE_QUERY_CACHE_STORE', null),
+        'store' => env('LIGHTHOUSE_QUERY_CACHE_STORE', 'file'),
 
         /*
          * Duration in seconds the query should remain cached, null means forever.
