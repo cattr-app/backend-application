@@ -6,10 +6,10 @@ use App;
 use App\Console\Commands\MakeAdmin;
 use App\Console\Commands\ResetCommand;
 use App\Helpers\EnvUpdater;
-use App\Http\Requests\Installation\CheckDatabaseInfoRequest;
+use App\Http\Requests\Installation\CheckDatabaseInfoRequestCattr;
 use App\Http\Requests\Installation\SaveSetupRequest;
 use Artisan;
-use Illuminate\Database\Console\Migrations\MigrateCommand;
+use Exception;
 use Illuminate\Foundation\Console\ConfigCacheCommand;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +19,7 @@ use Throwable;
 
 class InstallationController extends Controller
 {
-    public function checkDatabaseInfo(CheckDatabaseInfoRequest $request): JsonResponse
+    public function checkDatabaseInfo(CheckDatabaseInfoRequestCattr $request): JsonResponse
     {
         config([
             'database.connections.mysql.password' => $request->input('db_password'),
@@ -32,9 +32,11 @@ class InstallationController extends Controller
             DB::reconnect('mysql');
             DB::connection('mysql')->getPDO();
 
-            return responder()->success(['status' => (bool)DB::connection()->getDatabaseName()])->respond();
+            throw_unless((bool)DB::connection()->getDatabaseName());
+
+            return responder()->success()->respond(204);
         } catch (Throwable) {
-            return responder()->success(['status' => false])->respond();
+            return responder()->error()->respond();
         }
     }
 
@@ -87,7 +89,7 @@ class InstallationController extends Controller
         config(["database.connections.$connectionName.database" => $databaseName]);
         DB::purge();
 
-        Artisan::call(MigrateCommand::class, ['--force' => true]);
+        Artisan::call('migrate', ['--force' => true]);
 
         Artisan::call(ResetCommand::class, ['--force' => true]);
 

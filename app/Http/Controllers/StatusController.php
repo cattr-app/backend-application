@@ -6,6 +6,7 @@ use App\Helpers\CatHelper;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use Filter;
 use Settings;
 
 class StatusController extends Controller
@@ -38,7 +39,7 @@ class StatusController extends Controller
             'cattr' => true,
             'cat' => CatHelper::getCat(),
             'version' => config('app.version'),
-            'installed' => (bool)Settings::scope('core')->get('installed', false),
+            'installed' => (bool)Settings::scope('core')->get('installed'),
             'authorized' => auth()->check(),
         ])->respond();
     }

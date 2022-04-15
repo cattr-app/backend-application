@@ -18,9 +18,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $project_name
  * @property string $date
  * @property string|null $duration
- * @property-read \App\Models\Project|null $project
- * @property-read \App\Models\Task|null $task
- * @property-read \App\Models\User|null $user
+ * @property-read \App\Models\Project $project
+ * @property-read \App\Models\Task $task
+ * @property-read \App\Models\User $user
  * @method static Builder|ProjectReport newModelQuery()
  * @method static Builder|ProjectReport newQuery()
  * @method static Builder|ProjectReport query()

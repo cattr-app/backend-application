@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\UserType;
 use App\Mail\ResetPassword;
 use App\Scopes\UserScope;
 use App\Traits\HasRole;
@@ -10,7 +9,6 @@ use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Eloquent as EloquentIdeHelper;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,7 +22,6 @@ use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
 use Hash;
 use Laravel\Sanctum\HasApiTokens;
-use Mpdf\Tag\A;
 
 /**
  * @apiDefine UserObject
@@ -108,21 +105,33 @@ use Mpdf\Tag\A;
  * @property int $id
  * @property string $full_name
  * @property string $email
- * @property int|null $interval_duration
- * @property bool $active
+ * @property string|null $url
+ * @property int|null $company_id
+ * @property string|null $avatar
+ * @property int|null $screenshots_active
+ * @property int|null $manual_time
+ * @property int|null $computer_time_popup
+ * @property bool|null $blur_screenshots
+ * @property bool|null $web_and_app_monitoring
+ * @property int|null $screenshots_interval
+ * @property int $active
  * @property string $password
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property string|null $timezone
+ * @property int $important
+ * @property int $change_password
+ * @property int $is_admin
  * @property int $role_id
- * @property string $locale
- * @property UserType $type
- * @property int $invitation_sent
+ * @property string $user_language
+ * @property string $type
+ * @property bool $invitation_sent
+ * @property int $nonce
  * @property int $client_installed
  * @property int $permanent_screenshots
  * @property \Illuminate\Support\Carbon $last_activity
- * @property int $interval_proof_methods
+ * @property-read bool $online
  * @property-read DatabaseNotificationCollection|DatabaseNotification[] $notifications
  * @property-read int|null $notifications_count
  * @property-read Collection|\App\Models\Project[] $projects
@@ -138,29 +147,42 @@ use Mpdf\Tag\A;
  * @property-read int|null $time_intervals_count
  * @property-read Collection|\Laravel\Sanctum\PersonalAccessToken[] $tokens
  * @property-read int|null $tokens_count
+ * @method static EloquentBuilder|User active()
+ * @method static EloquentBuilder|User admin()
  * @method static \Database\Factories\UserFactory factory(...$parameters)
  * @method static EloquentBuilder|User newModelQuery()
  * @method static EloquentBuilder|User newQuery()
  * @method static QueryBuilder|User onlyTrashed()
  * @method static EloquentBuilder|User query()
  * @method static EloquentBuilder|User whereActive($value)
+ * @method static EloquentBuilder|User whereAvatar($value)
+ * @method static EloquentBuilder|User whereBlurScreenshots($value)
+ * @method static EloquentBuilder|User whereChangePassword($value)
  * @method static EloquentBuilder|User whereClientInstalled($value)
+ * @method static EloquentBuilder|User whereCompanyId($value)
+ * @method static EloquentBuilder|User whereComputerTimePopup($value)
  * @method static EloquentBuilder|User whereCreatedAt($value)
  * @method static EloquentBuilder|User whereDeletedAt($value)
  * @method static EloquentBuilder|User whereEmail($value)
  * @method static EloquentBuilder|User whereFullName($value)
  * @method static EloquentBuilder|User whereId($value)
- * @method static EloquentBuilder|User whereIntervalDuration($value)
- * @method static EloquentBuilder|User whereIntervalProofMethods($value)
+ * @method static EloquentBuilder|User whereImportant($value)
  * @method static EloquentBuilder|User whereInvitationSent($value)
+ * @method static EloquentBuilder|User whereIsAdmin($value)
  * @method static EloquentBuilder|User whereLastActivity($value)
- * @method static EloquentBuilder|User whereLocale($value)
+ * @method static EloquentBuilder|User whereManualTime($value)
+ * @method static EloquentBuilder|User whereNonce($value)
  * @method static EloquentBuilder|User wherePassword($value)
  * @method static EloquentBuilder|User wherePermanentScreenshots($value)
  * @method static EloquentBuilder|User whereRoleId($value)
+ * @method static EloquentBuilder|User whereScreenshotsActive($value)
+ * @method static EloquentBuilder|User whereScreenshotsInterval($value)
  * @method static EloquentBuilder|User whereTimezone($value)
  * @method static EloquentBuilder|User whereType($value)
  * @method static EloquentBuilder|User whereUpdatedAt($value)
+ * @method static EloquentBuilder|User whereUrl($value)
+ * @method static EloquentBuilder|User whereUserLanguage($value)
+ * @method static EloquentBuilder|User whereWebAndAppMonitoring($value)
  * @method static QueryBuilder|User withTrashed()
  * @method static QueryBuilder|User withoutTrashed()
  * @mixin EloquentIdeHelper
@@ -172,6 +194,12 @@ class User extends Authenticatable
     use HasRole;
     use HasFactory;
     use HasApiTokens;
+
+    /**
+     * table name from database
+     * @var string
+     */
+    protected $table = 'users';
 
     /**
      * @var array
@@ -189,15 +217,26 @@ class User extends Authenticatable
     protected $fillable = [
         'full_name',
         'email',
+        'url',
+        'company_id',
+        'avatar',
         'screenshots_active',
         'manual_time',
+        'computer_time_popup',
+        'blur_screenshots',
+        'web_and_app_monitoring',
+        'screenshots_interval',
         'active',
         'password',
         'timezone',
+        'important',
+        'change_password',
         'role_id',
-        'locale',
+        'is_admin',
+        'user_language',
         'type',
         'invitation_sent',
+        'nonce',
         'client_installed',
         'last_activity',
     ];
@@ -206,8 +245,29 @@ class User extends Authenticatable
      * @var array
      */
     protected $casts = [
-        'active' => 'boolean',
-        'type' => UserType::class,
+        'full_name' => 'string',
+        'email' => 'string',
+        'url' => 'string',
+        'company_id' => 'integer',
+        'avatar' => 'string',
+        'screenshots_active' => 'integer',
+        'manual_time' => 'integer',
+        'computer_time_popup' => 'integer',
+        'blur_screenshots' => 'boolean',
+        'web_and_app_monitoring' => 'boolean',
+        'screenshots_interval' => 'integer',
+        'active' => 'integer',
+        'password' => 'string',
+        'timezone' => 'string',
+        'important' => 'integer',
+        'change_password' => 'int',
+        'is_admin' => 'integer',
+        'role_id' => 'integer',
+        'user_language' => 'string',
+        'type' => 'string',
+        'invitation_sent' => 'boolean',
+        'nonce' => 'integer',
+        'client_installed' => 'integer',
     ];
 
     /**
@@ -229,6 +289,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'nonce',
     ];
 
     protected static function boot(): void
@@ -307,17 +368,41 @@ class User extends Authenticatable
     {
         $this->notify(new ResetPassword($this->email, $token));
     }
-
-    protected function online(): Attribute
+    /**
+     * Get the user's online status.
+     *
+     * @return bool
+     */
+    public function getOnlineAttribute(): bool
     {
-        return Attribute::get(
-            static fn($value, $attributes) => isset($attributes['last_activity']) &&
-                Carbon::make($attributes['last_activity'])->diffInSeconds(Carbon::now()) < config('app.user_activity.online_status_time')
-        );
+        if (!isset($this->last_activity)) {
+            return false;
+        }
+
+        return $this->last_activity->diffInSeconds(Carbon::now()) < config('app.user_activity.online_status_time');
     }
 
-    protected function password(): Attribute
+    /**
+     * Set the user's password.
+     *
+     * @param string $password
+     */
+    public function setPasswordAttribute(string $password): void
     {
-        return Attribute::set(static fn(string $value) => Hash::needsRehash($value) ? Hash::make($value) : $value);
+        if (Hash::needsRehash($password)) {
+            $password = Hash::make($password);
+        }
+
+        $this->attributes['password'] = $password;
+    }
+
+    public function scopeAdmin(EloquentBuilder $query): EloquentBuilder
+    {
+        return $query->where('is_admin', true);
+    }
+
+    public function scopeActive(EloquentBuilder $query): EloquentBuilder
+    {
+        return $query->where('active', true);
     }
 }

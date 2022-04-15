@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\Entities\AuthorizationException;
 use App\Helpers\Recaptcha;
-use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\LoginRequestCattr;
 use App\Http\Transformers\AuthTokenTransformer;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -72,7 +72,7 @@ class AuthController extends BaseController
      * @apiUse         CaptchaError
      * @apiUse         LimiterError
      */
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequestCattr $request): JsonResponse
     {
         throw_if(
             $request->attributes->get('clientType') !== 'web',

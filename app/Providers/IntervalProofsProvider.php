@@ -27,7 +27,7 @@ class IntervalProofsProvider extends ServiceProvider
     {
         $providers = cache('interval_proof_providers');
 
-        foreach($this->app->tagged('interval_proof_providers') as $provider){
+        foreach ($this->app->tagged('interval_proof_providers') as $provider) {
             $providerNumber = $this->app->call([$provider, 'getType']);
 
             $this->app->bind("interval_proof_provider_$providerNumber", $provider::class);

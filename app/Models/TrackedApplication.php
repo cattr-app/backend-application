@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Scopes\ScreenshotScope;
-use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,7 +36,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder|TrackedApplication whereUserId($value)
  * @method static \Illuminate\Database\Query\Builder|TrackedApplication withTrashed()
  * @method static \Illuminate\Database\Query\Builder|TrackedApplication withoutTrashed()
- * @mixin Eloquent
+ * @mixin \Eloquent
  */
 class TrackedApplication extends Model
 {
@@ -45,19 +44,17 @@ class TrackedApplication extends Model
 
     protected $table = 'tracked_applications';
 
-    protected $fillable
-        = [
-            'title',
-            'executable',
-            'user_id',
-        ];
+    protected $fillable = [
+        'title',
+        'executable',
+        'user_id',
+    ];
 
-    protected $dates
-        = [
-            'created_at',
-            'updated_at',
-            'deleted_at',
-        ];
+    protected $dates = [
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ];
 
     protected static function boot(): void
     {

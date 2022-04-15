@@ -68,9 +68,9 @@ class ScreenshotService implements IntervalProofProvider
     private function getThumbPath(TimeInterval $interval): string
     {
         return self::PARENT_FOLDER . self::THUMBS_FOLDER . hash(
-                'sha256',
-                optional($interval)->id ?: $interval
-            ) . '.' . self::FILE_FORMAT;
+            'sha256',
+            optional($interval)->id ?: $interval
+        ) . '.' . self::FILE_FORMAT;
     }
 
     public function destroy(TimeInterval $interval): void

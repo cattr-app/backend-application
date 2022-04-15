@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\CompanySettings\UpdateCompanySettingsRequest;
+use App\Http\Requests\CompanySettings\UpdateCompanySettingsRequestCattr;
 use App\Http\Transformers\CompanySettingsTransformer;
 use App\Models\Priority;
 use Illuminate\Http\JsonResponse;
@@ -73,7 +73,7 @@ class CompanySettingsController extends Controller
     }
 
     /**
-     * @param UpdateCompanySettingsRequest $request
+     * @param UpdateCompanySettingsRequestCattr $request
      *
      * @return JsonResponse
      *
@@ -150,7 +150,7 @@ class CompanySettingsController extends Controller
      * @apiUse          UnauthorizedError
      *
      */
-    public function update(UpdateCompanySettingsRequest $request): JsonResponse
+    public function update(UpdateCompanySettingsRequestCattr $request): JsonResponse
     {
         Settings::scope('core')->set($request->validated());
 

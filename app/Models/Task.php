@@ -81,13 +81,13 @@ use Parsedown;
  * @property int|null $status_id
  * @property float $relative_position
  * @property \Illuminate\Support\Carbon|null $due_date
- * @property-read \App\Models\User|null $assigned
+ * @property-read \App\Models\User $assigned
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\TaskHistory[] $changes
  * @property-read int|null $changes_count
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\TaskComment[] $comments
  * @property-read int|null $comments_count
  * @property-read array $can
- * @property-read \App\Models\Priority|null $priority
+ * @property-read \App\Models\Priority $priority
  * @property-read \App\Models\Project $project
  * @property-read \App\Models\Status|null $status
  * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\TimeInterval[] $timeIntervals

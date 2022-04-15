@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Contracts\ScreenshotService;
-use App\Http\Requests\TimeInterval\BulkDestroyTimeIntervalRequest;
-use App\Http\Requests\TimeInterval\BulkEditTimeIntervalRequest;
-use App\Http\Requests\TimeInterval\CreateTimeIntervalRequest;
-use App\Http\Requests\TimeInterval\DestroyTimeIntervalRequest;
-use App\Http\Requests\TimeInterval\EditTimeIntervalRequest;
-use App\Http\Requests\TimeInterval\PutScreenshotRequest;
-use App\Http\Requests\TimeInterval\ScreenshotRequest;
-use App\Http\Requests\TimeInterval\ShowTimeIntervalRequest;
-use App\Http\Requests\TimeInterval\TrackAppRequest;
+use App\Http\Requests\TimeInterval\BulkDestroyTimeIntervalRequestCattr;
+use App\Http\Requests\TimeInterval\BulkEditTimeIntervalRequestCattr;
+use App\Http\Requests\TimeInterval\CreateTimeIntervalRequestCattr;
+use App\Http\Requests\TimeInterval\DestroyTimeIntervalRequestCattr;
+use App\Http\Requests\TimeInterval\EditTimeIntervalRequestCattr;
+use App\Http\Requests\TimeInterval\PutScreenshotRequestCattr;
+use App\Http\Requests\TimeInterval\ScreenshotRequestCattr;
+use App\Http\Requests\TimeInterval\ShowTimeIntervalRequestCattr;
+use App\Http\Requests\TimeInterval\TrackAppRequestCattr;
 use App\Jobs\AssignAppsToTimeInterval;
 use App\Models\TrackedApplication;
 use App\Models\User;
@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Settings;
 use Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Validator;
@@ -32,7 +33,6 @@ class TimeIntervalController extends ItemController
 {
     public function __construct(protected ScreenshotService $screenshotService)
     {
-        parent::__construct();
     }
 
     public function getItemClass(): string
@@ -40,9 +40,13 @@ class TimeIntervalController extends ItemController
         return TimeInterval::class;
     }
 
-    public function create(CreateTimeIntervalRequest $request): JsonResponse
+    public function create(CreateTimeIntervalRequestCattr $request): JsonResponse
     {
         $intervalData = $request->validated();
+        $timezone = Settings::scope('core')->get('timezone', 'UTC');
+
+        $intervalData['start_at'] = Carbon::parse($intervalData['start_at'])->setTimezone($timezone);
+        $intervalData['end_at'] = Carbon::parse($intervalData['end_at'])->setTimezone($timezone);
 
         $timeInterval = TimeInterval::create($intervalData);
 
@@ -54,11 +58,7 @@ class TimeIntervalController extends ItemController
             AssignAppsToTimeInterval::dispatchAfterResponse($timeInterval);
         }
 
-        return new JsonResponse(
-            Filter::process($this->getEventUniqueName('answer.success.item.create'), [
-                'interval' => $timeInterval,
-            ])
-        );
+        return responder()->success($timeInterval)->respond();
     }
 
     /**
@@ -132,29 +132,15 @@ class TimeIntervalController extends ItemController
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->all();
-        $request->get('project_id') ? $filters['task.project_id'] = $request->get('project_id') : false;
+        Filter::listen(Filter::getQueryPrepareFilterName(), static function ($filters) use ($request) {
+            if ($request->get('project_id')) {
+                $filters['task.project_id'] = $request->get('project_id');
+            }
 
-        $itemsQuery = Filter::process(
-            $this->getEventUniqueName('answer.success.item.list.query.prepare'),
-            $this->applyQueryFilter(
-                $this->getQuery(),
-                $filters ?: []
-            )
-        );
+            return $filters;
+        });
 
-        $paginate = $request->get('paginate', false);
-        $currentPage = $request->get('page', 1);
-        $perPage = $request->get('perPage', 15);
-
-        return new JsonResponse(
-            Filter::process(
-                $this->getEventUniqueName('answer.success.item.list.result'),
-                $paginate ?
-                    $itemsQuery->paginate($perPage, ['*'], 'page', $currentPage)
-                    : $itemsQuery->get()
-            )
-        );
+        return $this->_index($request);
     }
 
     /**
@@ -168,7 +154,7 @@ class TimeIntervalController extends ItemController
      */
 
     /**
-     * @param ShowTimeIntervalRequest $request
+     * @param ShowTimeIntervalRequestCattr $request
      *
      * @return JsonResponse
      * @throws Exception
@@ -216,7 +202,7 @@ class TimeIntervalController extends ItemController
      * @apiUse          ForbiddenError
      * @apiUse          ValidationError
      */
-    public function show(ShowTimeIntervalRequest $request): JsonResponse
+    public function show(ShowTimeIntervalRequestCattr $request): JsonResponse
     {
         return $this->_show($request);
     }
@@ -261,12 +247,12 @@ class TimeIntervalController extends ItemController
      */
 
     /**
-     * @param EditTimeIntervalRequest $request
+     * @param EditTimeIntervalRequestCattr $request
      *
      * @return JsonResponse
      * @throws Exception
      */
-    public function edit(EditTimeIntervalRequest $request): JsonResponse
+    public function edit(EditTimeIntervalRequestCattr $request): JsonResponse
     {
         $requestData = Filter::process(
             $this->getEventUniqueName('request.item.edit'),
@@ -326,11 +312,7 @@ class TimeIntervalController extends ItemController
         $item = Filter::process($this->getEventUniqueName('item.edit'), $item);
         $item->save();
 
-        return new JsonResponse(
-            Filter::process($this->getEventUniqueName('answer.success.item.edit'), [
-                'res' => $item,
-            ])
-        );
+        return responder()->success($item)->respond();
     }
 
     /**
@@ -435,6 +417,7 @@ class TimeIntervalController extends ItemController
     }
 
     /**
+     * @throws Exception
      * @api             {get,post} /time-intervals/count Count
      * @apiDescription  Count Time Intervals
      *
@@ -462,6 +445,7 @@ class TimeIntervalController extends ItemController
     }
 
     /**
+     * @throws Exception
      * @api             {post} /time-intervals/remove Destroy
      * @apiDescription  Destroy Time Interval
      *
@@ -494,18 +478,18 @@ class TimeIntervalController extends ItemController
      * @apiUse          ForbiddenError
      * @apiUse          UnauthorizedError
      */
-    public function destroy(DestroyTimeIntervalRequest $request): JsonResponse
+    public function destroy(DestroyTimeIntervalRequestCattr $request): JsonResponse
     {
         return $this->_destroy($request);
     }
 
     /**
-     * @param BulkEditTimeIntervalRequest $request
+     * @param BulkEditTimeIntervalRequestCattr $request
      *
      * @return JsonResponse
      * @throws Exception
      */
-    public function bulkEdit(BulkEditTimeIntervalRequest $request): JsonResponse
+    public function bulkEdit(BulkEditTimeIntervalRequestCattr $request): JsonResponse
     {
         $intervalsData = collect($request->validated()['intervals']);
 
@@ -519,14 +503,7 @@ class TimeIntervalController extends ItemController
             $item->update(Arr::only($intervalsData->where('id', $item->id)->first() ?: [], 'task_id'));
         });
 
-        $responseData = [
-            'message' => 'Intervals successfully updated',
-        ];
-
-        return new JsonResponse(
-            Filter::process($this->getEventUniqueName('answer.success.item.edit'), $responseData),
-            200
-        );
+        return responder()->success()->respond(204);
     }
 
     /**
@@ -575,7 +552,7 @@ class TimeIntervalController extends ItemController
      * @apiUse          UnauthorizedError
      *
      */
-    public function bulkDestroy(BulkDestroyTimeIntervalRequest $request): JsonResponse
+    public function bulkDestroy(BulkDestroyTimeIntervalRequestCattr $request): JsonResponse
     {
         $intervalIds = $request->validated()['intervals'];
 
@@ -590,17 +567,10 @@ class TimeIntervalController extends ItemController
             $item->delete();
         }
 
-        $responseData = [
-            'message' => 'Intervals successfully removed',
-        ];
-
-        return new JsonResponse(
-            Filter::process($this->getEventUniqueName('answer.success.item.remove'), $responseData),
-            200
-        );
+        return responder()->success()->respond(204);
     }
 
-    public function trackApp(TrackAppRequest $request): JsonResponse
+    public function trackApp(TrackAppRequestCattr $request): JsonResponse
     {
         $user = auth()->user();
         if (!isset($user)) {
@@ -609,10 +579,10 @@ class TimeIntervalController extends ItemController
 
         $item = TrackedApplication::create(array_merge($request->validated(), ['user_id' => $user->id]));
 
-        return new JsonResponse(['res' => $item]);
+        return responder()->success($item)->respond();
     }
 
-    public function showScreenshot(ScreenshotRequest $request, TimeInterval $interval): BinaryFileResponse
+    public function showScreenshot(ScreenshotRequestCattr $request, TimeInterval $interval): BinaryFileResponse
     {
         $path = $this->screenshotService->getScreenshotPath($interval);
         if (!Storage::exists($path)) {
@@ -624,7 +594,7 @@ class TimeIntervalController extends ItemController
         return response()->file($fullPath);
     }
 
-    public function showThumbnail(ScreenshotRequest $request, TimeInterval $interval): BinaryFileResponse
+    public function showThumbnail(ScreenshotRequestCattr $request, TimeInterval $interval): BinaryFileResponse
     {
         $path = $this->screenshotService->getThumbPath($interval);
         if (!Storage::exists($path)) {
@@ -636,7 +606,7 @@ class TimeIntervalController extends ItemController
         return response()->file($fullPath);
     }
 
-    public function putScreenshot(PutScreenshotRequest $request, TimeInterval $interval): JsonResponse
+    public function putScreenshot(PutScreenshotRequestCattr $request, TimeInterval $interval): JsonResponse
     {
         $data = $request->validated();
 
@@ -648,6 +618,6 @@ class TimeIntervalController extends ItemController
 
         $this->screenshotService->saveScreenshot($data['screenshot'], $interval);
 
-        return response()->json('', 204);
+        return responder()->success()->respond(204);
     }
 }

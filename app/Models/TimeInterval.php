@@ -145,7 +145,7 @@ class TimeInterval extends Model
         'mouse_fill',
         'keyboard_fill',
         'is_manual',
-        'location'
+        'location',
     ];
 
     /**
