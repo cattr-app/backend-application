@@ -24,7 +24,7 @@ type User {
   id: ID!
 
   "Non-unique name."
-  full_name: String!
+  name: String!
 
   "Unique email address."
   email: Email!
@@ -35,9 +35,18 @@ type User {
   "When the account was last updated."
   updated_at: DateTime!
 
-  "What interval should clients use for intervals"
+  "What seconds interval should clients use for intervals."
   interval_duration: Int
 
-  "Can account log in and track time"
+  "Can account log in and track time?"
   active: Boolean
+
+  "Is online now?"
+  online: Boolean
+
+  "User locale."
+  locale: String
+
+  "User type"
+  type: UserType
 }

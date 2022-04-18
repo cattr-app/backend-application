@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
-use App\Mail\ResetPassword;
+use App\Enums\UserType;
 use App\Scopes\UserScope;
 use App\Traits\HasRole;
 use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Eloquent as EloquentIdeHelper;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,7 @@ use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
 use Hash;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * @apiDefine UserObject
@@ -134,22 +136,22 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read bool $online
  * @property-read DatabaseNotificationCollection|DatabaseNotification[] $notifications
  * @property-read int|null $notifications_count
- * @property-read Collection|\App\Models\Project[] $projects
+ * @property-read Collection|Project[] $projects
  * @property-read int|null $projects_count
- * @property-read Collection|\App\Models\ProjectsUsers[] $projectsRelation
+ * @property-read Collection|ProjectsUsers[] $projectsRelation
  * @property-read int|null $projects_relation_count
- * @property-read Collection|\App\Models\Property[] $properties
+ * @property-read Collection|Property[] $properties
  * @property-read int|null $properties_count
- * @property-read \App\Models\Role $role
- * @property-read Collection|\App\Models\Task[] $tasks
+ * @property-read Role $role
+ * @property-read Collection|Task[] $tasks
  * @property-read int|null $tasks_count
- * @property-read Collection|\App\Models\TimeInterval[] $timeIntervals
+ * @property-read Collection|TimeInterval[] $timeIntervals
  * @property-read int|null $time_intervals_count
- * @property-read Collection|\Laravel\Sanctum\PersonalAccessToken[] $tokens
+ * @property-read Collection|PersonalAccessToken[] $tokens
  * @property-read int|null $tokens_count
  * @method static EloquentBuilder|User active()
  * @method static EloquentBuilder|User admin()
- * @method static \Database\Factories\UserFactory factory(...$parameters)
+ * @method static UserFactory factory(...$parameters)
  * @method static EloquentBuilder|User newModelQuery()
  * @method static EloquentBuilder|User newQuery()
  * @method static QueryBuilder|User onlyTrashed()
@@ -195,86 +197,36 @@ class User extends Authenticatable
     use HasFactory;
     use HasApiTokens;
 
-    /**
-     * table name from database
-     * @var string
-     */
-    protected $table = 'users';
-
-    /**
-     * @var array
-     */
     protected $with = [
         'role',
         'projectsRelation.role',
     ];
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'full_name',
+        'name',
         'email',
-        'url',
-        'company_id',
-        'avatar',
-        'screenshots_active',
-        'manual_time',
-        'computer_time_popup',
-        'blur_screenshots',
-        'web_and_app_monitoring',
-        'screenshots_interval',
+        'interval_duration',
         'active',
         'password',
-        'timezone',
-        'important',
-        'change_password',
-        'role_id',
         'is_admin',
-        'user_language',
+        'role_id',
+        'locale',
         'type',
-        'invitation_sent',
-        'nonce',
-        'client_installed',
         'last_activity',
     ];
 
-    /**
-     * @var array
-     */
     protected $casts = [
-        'full_name' => 'string',
+        'name' => 'string',
         'email' => 'string',
-        'url' => 'string',
-        'company_id' => 'integer',
-        'avatar' => 'string',
-        'screenshots_active' => 'integer',
-        'manual_time' => 'integer',
-        'computer_time_popup' => 'integer',
-        'blur_screenshots' => 'boolean',
-        'web_and_app_monitoring' => 'boolean',
-        'screenshots_interval' => 'integer',
-        'active' => 'integer',
+        'interval_duration' => 'integer',
+        'active' => 'boolean',
         'password' => 'string',
-        'timezone' => 'string',
-        'important' => 'integer',
-        'change_password' => 'int',
-        'is_admin' => 'integer',
+        'is_admin' => 'boolean',
         'role_id' => 'integer',
-        'user_language' => 'string',
-        'type' => 'string',
-        'invitation_sent' => 'boolean',
-        'nonce' => 'integer',
-        'client_installed' => 'integer',
+        'locale' => 'string',
+        'type' => UserType::class,
     ];
 
-    /**
-     * The attributes that should be mutated to dates.
-     *
-     * @var array
-     */
     protected $dates = [
         'created_at',
         'updated_at',
@@ -282,14 +234,12 @@ class User extends Authenticatable
         'last_activity',
     ];
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
     protected $hidden = [
         'password',
-        'nonce',
+    ];
+
+    protected $appends = [
+        'online',
     ];
 
     protected static function boot(): void
@@ -299,101 +249,36 @@ class User extends Authenticatable
         static::addGlobalScope(new UserScope);
     }
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
-    protected $appends = [
-        'online',
-    ];
-
-    /**
-     * @return BelongsTo
-     */
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id', 'id');
     }
 
-    /**
-     * @return BelongsToMany
-     */
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class, 'projects_users', 'user_id', 'project_id')
             ->withPivot('role_id');
     }
 
-    /**
-     * @return HasMany
-     */
     public function projectsRelation(): HasMany
     {
         return $this->hasMany(ProjectsUsers::class, 'user_id', 'id');
     }
 
-    /**
-     * @return BelongsToMany
-     */
     public function tasks(): BelongsToMany
     {
         return $this->belongsToMany(Task::class, 'tasks_users', 'user_id', 'task_id');
     }
 
-    /**
-     * @return HasMany
-     */
-    public function timeIntervals(): HasMany
+    public function intervals(): HasMany
     {
         return $this->hasMany(TimeInterval::class, 'user_id');
     }
 
-    /**
-     * @return HasMany
-     */
     public function properties(): HasMany
     {
         return $this->hasMany(Property::class, 'entity_id')
             ->where('entity_type', Property::USER_CODE);
-    }
-
-    /**
-     * Send the password reset notification.
-     *
-     * @param string $token
-     * @return void
-     */
-    public function sendPasswordResetNotification($token): void
-    {
-        $this->notify(new ResetPassword($this->email, $token));
-    }
-    /**
-     * Get the user's online status.
-     *
-     * @return bool
-     */
-    public function getOnlineAttribute(): bool
-    {
-        if (!isset($this->last_activity)) {
-            return false;
-        }
-
-        return $this->last_activity->diffInSeconds(Carbon::now()) < config('app.user_activity.online_status_time');
-    }
-
-    /**
-     * Set the user's password.
-     *
-     * @param string $password
-     */
-    public function setPasswordAttribute(string $password): void
-    {
-        if (Hash::needsRehash($password)) {
-            $password = Hash::make($password);
-        }
-
-        $this->attributes['password'] = $password;
     }
 
     public function scopeAdmin(EloquentBuilder $query): EloquentBuilder
@@ -404,5 +289,21 @@ class User extends Authenticatable
     public function scopeActive(EloquentBuilder $query): EloquentBuilder
     {
         return $query->where('active', true);
+    }
+
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: static fn($value) => Hash::needsRehash($value) ? Hash::make($value) : $value,
+        );
+    }
+
+    protected function online(): Attribute
+    {
+        return Attribute::make(
+            get: static fn($value, $attributes) => $attributes['last_activity'] &&
+                Carbon::parse($attributes['last_activity'])->diffInSeconds(Carbon::now())
+                < config('app.user_activity.online_status_time'),
+        );
     }
 }

@@ -64,6 +64,7 @@ return [
         App\Providers\IntervalProofsProvider::class,
 
         App\Providers\SettingsServiceProvider::class,
+        App\Providers\GraphQLServiceProvider::class,
     ],
     'aliases' => [
 
