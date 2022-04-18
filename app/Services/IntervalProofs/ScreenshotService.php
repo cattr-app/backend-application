@@ -22,7 +22,7 @@ class ScreenshotService implements IntervalProofProvider
         return storage_path(config("filesystems.disks.$fileSystemPath.root"));
     }
 
-    public function store(mixed $data, TimeInterval $interval): void
+    public static function store(mixed $data, TimeInterval $interval): void
     {
         if (!Storage::exists(self::PARENT_FOLDER)) {
             Storage::makeDirectory(self::PARENT_FOLDER);
@@ -32,40 +32,44 @@ class ScreenshotService implements IntervalProofProvider
 
         $image = Image::make($path);
 
-        Storage::put($this->getScreenshotPath($interval), (string)$image->encode(self::FILE_FORMAT));
+        Storage::put(self::getScreenshotPath($interval), (string)$image->encode(self::FILE_FORMAT));
 
         GenerateScreenshotThumbnail::dispatch($interval);
     }
 
-    public function exists(TimeInterval $interval): bool
+    public static function exists(TimeInterval $interval): bool
     {
-        return Storage::exists($this->getScreenshotPath($interval));
+        return Storage::exists(self::getScreenshotPath($interval));
     }
 
-    private function getScreenshotPath(TimeInterval $interval): string
+    private static function getScreenshotPath(TimeInterval $interval): string
     {
         return self::PARENT_FOLDER . hash('sha256', optional($interval)->id ?: $interval) . '.' . self::FILE_FORMAT;
     }
 
-    public function get(TimeInterval $interval): mixed
+    public static function get(TimeInterval $interval): mixed
     {
         // TODO: Implement get() method.
     }
 
-    public function createThumbnail(TimeInterval $interval): void
+    public static function createThumbnail(TimeInterval $interval): void
     {
         if (!Storage::exists(self::PARENT_FOLDER . self::THUMBS_FOLDER)) {
             Storage::makeDirectory(self::PARENT_FOLDER . self::THUMBS_FOLDER);
         }
 
-        $image = Image::make(Storage::path($this->getScreenshotPath($interval)));
+        $image = Image::make(Storage::path(self::getScreenshotPath($interval)));
 
-        $thumb = $image->resize(self::THUMB_WIDTH, null, fn(Constraint $constraint) => $constraint->aspectRatio());
+        $thumb = $image->resize(
+            self::THUMB_WIDTH,
+            null,
+            static fn(Constraint $constraint) => $constraint->aspectRatio()
+        );
 
-        Storage::put($this->getThumbPath($interval), (string)$thumb->encode(self::FILE_FORMAT));
+        Storage::put(self::getThumbPath($interval), (string)$thumb->encode(self::FILE_FORMAT));
     }
 
-    private function getThumbPath(TimeInterval $interval): string
+    private static function getThumbPath(TimeInterval $interval): string
     {
         return self::PARENT_FOLDER . self::THUMBS_FOLDER . hash(
             'sha256',
@@ -73,15 +77,15 @@ class ScreenshotService implements IntervalProofProvider
         ) . '.' . self::FILE_FORMAT;
     }
 
-    public function destroy(TimeInterval $interval): void
+    public static function destroy(TimeInterval $interval): void
     {
-        Storage::delete($this->getScreenshotPath($interval));
-        Storage::delete($this->getThumbPath($interval));
+        Storage::delete(self::getScreenshotPath($interval));
+        Storage::delete(self::getThumbPath($interval));
     }
 
-    public static function getType(): int
+    public static function getMask(): int
     {
-        return 10;
+        return 1 << 0;
     }
 
     public static function getName(): string

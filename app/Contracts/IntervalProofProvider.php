@@ -4,17 +4,13 @@ namespace App\Contracts;
 
 use App\Models\TimeInterval;
 
-interface IntervalProofProvider
+interface IntervalProofProvider extends VariationProviderContract
 {
-    public static function getType(): int;
+    public static function store(mixed $data, TimeInterval $interval): void;
 
-    public static function getName(): string;
+    public static function get(TimeInterval $interval): mixed;
 
-    public function store(mixed $data, TimeInterval $interval): void;
+    public static function destroy(TimeInterval $interval): void;
 
-    public function get(TimeInterval $interval): mixed;
-
-    public function destroy(TimeInterval $interval): void;
-
-    public function exists(TimeInterval $interval): bool;
+    public static function exists(TimeInterval $interval): bool;
 }
