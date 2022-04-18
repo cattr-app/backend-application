@@ -28,11 +28,6 @@ class AppServiceProvider extends ServiceProvider
             $this->app->register(TelescopeServiceProvider::class);
         }
 
-        $this->app->bind(
-            App\Contracts\ScreenshotService::class,
-            App\Services\ProductionScreenshotService::class
-        );
-
         $this->app->bind(CreatesResponse::class, FractalResponse::class);
     }
 }
