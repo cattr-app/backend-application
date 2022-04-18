@@ -20,8 +20,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property int|null $user_id
- * @property-read \App\Models\TimeInterval|null $timeInterval
- * @property-read \App\Models\User|null $user
+ * @property-read TimeInterval|null $timeInterval
+ * @property-read User|null $user
  * @method static Builder|TrackedApplication newModelQuery()
  * @method static Builder|TrackedApplication newQuery()
  * @method static \Illuminate\Database\Query\Builder|TrackedApplication onlyTrashed()
