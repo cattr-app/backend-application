@@ -59,6 +59,10 @@ class TaskPolicy
             return true;
         }
 
+        if ($user->hasRole('user')) {
+            return true;
+        }
+
         if ($user->hasProjectRole('manager', $projectId)) {
             return true;
         }
@@ -84,6 +88,10 @@ class TaskPolicy
         }
 
         if ($user->hasRole('manager')) {
+            return true;
+        }
+
+        if ($user->hasRole('user')) {
             return true;
         }
 
