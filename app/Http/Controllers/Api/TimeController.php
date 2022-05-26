@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use Filter;
-use App\Models\TimeInterval;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,8 +11,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Validator;
 
-class TimeController extends ItemController
+/**
+ * @deprecated
+ */
+class TimeController extends Controller
 {
+    /**
+     * @deprecated
+     */
     public static function getControllerRules(): array
     {
         return [
@@ -23,22 +29,6 @@ class TimeController extends ItemController
             'taskUser' => 'time.task-user',
         ];
     }
-
-    public function getItemClass(): string
-    {
-        return TimeInterval::class;
-    }
-
-    public function getValidationRules(): array
-    {
-        return [];
-    }
-
-    public function getEventUniqueNamePart(): string
-    {
-        return 'time';
-    }
-
     /**
      * @api             {get,post} /time/total Total
      * @apiDescription  Get total of Time
@@ -86,6 +76,7 @@ class TimeController extends ItemController
      * @param Request $request
      * @return JsonResponse
      * @throws Exception
+     * @deprecated
      */
     public function total(Request $request): JsonResponse
     {
@@ -211,6 +202,7 @@ class TimeController extends ItemController
      * @param Request $request
      * @return JsonResponse
      * @throws Exception
+     * @deprecated
      */
     public function tasks(Request $request): JsonResponse
     {

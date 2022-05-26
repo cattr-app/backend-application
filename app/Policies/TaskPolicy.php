@@ -5,11 +5,22 @@ namespace App\Policies;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use Cache;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class TaskPolicy
 {
     use HandlesAuthorization;
+
+    public function before(User $user): ?bool
+    {
+        return $user->isAdmin() ?: null;
+    }
+
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
 
     /**
      * Determine if the given task can be viewed by the user.
@@ -20,7 +31,11 @@ class TaskPolicy
      */
     public function view(User $user, Task $task): bool
     {
-        return Task::find(optional($task)->id)->exists();
+        return Cache::store('octane')->remember(
+            "role_user_task_{$user->id}_$task->id",
+            config('cache.role_caching_ttl'),
+            static fn() => Task::whereId($task->id)->exists(),
+        );
     }
 
     /**
@@ -36,19 +51,8 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('manager')) {
-            return true;
-        }
-
-        if ($user->hasProjectRole('manager', $projectId)) {
-            return true;
-        }
-
-        return false;
+        return $user->hasRole('manager')
+            || $user->hasProjectRole('manager', $projectId) || $user->hasProjectRole('user', $projectId);
     }
 
     /**
@@ -64,19 +68,9 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('manager')) {
-            return true;
-        }
-
-        if ($user->hasProjectRole('manager', $task->project_id)) {
-            return true;
-        }
-
-        return false;
+        return $user->hasRole('manager')
+            || $user->hasProjectRole('manager', $task->project_id)
+            || ($user->hasProjectRole('user', $task->project_id) && $task->assigned_by === $user->id);
     }
 
     /**
@@ -92,18 +86,7 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('manager')) {
-            return true;
-        }
-
-        if ($user->hasProjectRole('manager', $task->project_id)) {
-            return true;
-        }
-
-        return false;
+        return $user->hasRole('manager')
+            || $user->hasProjectRole('manager', $task->project_id);
     }
 }

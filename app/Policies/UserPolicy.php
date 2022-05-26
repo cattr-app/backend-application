@@ -3,80 +3,72 @@
 namespace App\Policies;
 
 use App\Models\User;
+use Cache;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Validation\ValidationException;
 
 class UserPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * @param User $user
-     * @return bool
-     */
-    public function before(User $user)
+    private const ALLOWED_EDITABLE_FIELDS = [
+        'full_name',
+        'email',
+        'password',
+        'user_language',
+    ];
+
+    public function before(User $user): ?bool
     {
-        if ($user->hasRole('admin')) {
-            return true;
-        }
+        return $user->isAdmin() ?: null;
     }
 
-    /**
-     * Determine if the given user can be viewed by the user.
-     *
-     * @param User $user
-     * @param User $model
-     * @return bool
-     */
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
     public function view(User $user, User $model): bool
     {
-        return User::find(optional($model)->id)->exists();
+        return Cache::store('octane')->remember(
+            "role_user_user_{$user->id}_$model->id",
+            config('cache.role_caching_ttl'),
+            static fn() => User::whereId($model->id)->exists(),
+        );
     }
 
-    /**
-     * Determine if the given user can be created by the user.
-     *
-     * @param User $user
-     * @param User $model
-     * @return bool
-     */
-    public function create(User $user, User $model): bool
+    public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->isAdmin();
     }
 
     /**
-     * Determine if the given user can be updated by the user.
-     *
-     * @param User $user
-     * @param User $model
-     * @return bool
+     * @throws ValidationException
      */
     public function update(User $user, User $model): bool
     {
+        $extraFields = array_diff(array_keys(request()?->except('id')), self::ALLOWED_EDITABLE_FIELDS);
+
+        if (count($extraFields)) {
+            $errorMessages = [];
+
+            foreach ($extraFields as $fieldKey) {
+                $errorMessages[$fieldKey] = __('You don\'t have permission to edit this field');
+            }
+
+            throw ValidationException::withMessages($errorMessages);
+        }
+
         return $user->id === $model->id;
     }
 
-    /**
-     * Determine if the given user can be destroyed by the user.
-     *
-     * @param User $user
-     * @param User $model
-     * @return bool
-     */
-    public function destroy(User $user, User $model): bool
+    public function destroy(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->isAdmin();
     }
 
-    /**
-     * Determine if the given user can be invited by the user.
-     *
-     * @param User $user
-     * @param User $model
-     * @return bool
-     */
-    public function sendInvite(User $user, User $model): bool
+    public function sendInvite(): bool
     {
-        return $user->hasRole('admin');
+        return false;
     }
 }

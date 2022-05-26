@@ -3,17 +3,18 @@
 namespace App\Helpers;
 
 use Exception;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Filter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Pagination\AbstractPaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
-use Schema;
-use function is_array;
 
 class QueryHelper
 {
-    public const RESERVED_REQUEST_KEYWORDS = [
+    private const RESERVED_REQUEST_KEYWORDS = [
         'with',
         'withCount',
         'paginate',
@@ -24,14 +25,9 @@ class QueryHelper
     ];
 
     /**
-     * @param QueryBuilder|EloquentBuilder $query
-     * @param array $filter
-     * @param Model $model
-     * @param bool $first
-     *
      * @throws Exception
      */
-    public function apply($query, $model, array $filter = [], $first = true): void
+    public static function apply(Builder $query, Model $model, array $filter = [], bool $first = true): void
     {
         $table = $model->getTable();
         $relations = [];
@@ -48,7 +44,7 @@ class QueryHelper
 
         if (isset($filter['orderBy'])) {
             $order_by = $filter['orderBy'];
-            [$column, $dir] = is_array($order_by) ? array_values($order_by) : [$order_by, 'asc'];
+            [$column, $dir] = isset($order_by[1]) ? array_values($order_by) : [$order_by[0], 'asc'];
             if (Schema::hasColumn($table, $column)) {
                 $query->orderBy($column, $dir);
             }
@@ -57,127 +53,143 @@ class QueryHelper
         }
 
         if (isset($filter['with'])) {
-            $query->with($this->getRelationsFilter($filter['with']));
+            $query->with(self::getRelationsFilter($filter['with']));
         }
 
         if (isset($filter['withCount'])) {
-            $query->withCount($this->getRelationsFilter($filter['withCount']));
+            $query->withCount($filter['withCount']);
         }
 
         if (isset($filter['search']['query'], $filter['search']['fields'])) {
-            $query = $this->buildSearchQuery($query, $filter['search']['query'], $filter['search']['fields']);
+            $query = self::buildSearchQuery($query, $filter['search']['query'], $filter['search']['fields']);
         }
 
-        foreach ($filter as $key => $param) {
-            if (strpos($key, '.') !== false) {
-                $params = explode('.', $key);
-                $domain = array_shift($params);
-                $filterParam = implode('.', $params);
+        if (isset($filter['where'])) {
+            foreach ($filter['where'] as $key => $param) {
+                if (str_contains($key, '.')) {
+                    $params = explode('.', $key);
+                    $domain = array_shift($params);
+                    $filterParam = implode('.', $params);
 
-                if (!isset($relations[$domain])) {
-                    $relations[$domain] = [];
-                }
-
-                $relations[$domain][$filterParam] = $param;
-            } elseif (!in_array($key, static::RESERVED_REQUEST_KEYWORDS, true) &&
-                      !in_array($key, $model->getHidden(), true) &&
-                      Schema::hasColumn($table, $key)
-            ) {
-                [$operator, $value] = is_array($param) ? array_values($param) : ['=', $param];
-
-                if (is_array($value) && $operator !== 'in') {
-                    if ($operator === '=') {
-                        $query->whereIn("$table.$key", $value);
-                    } elseif ($operator === 'between' && count($value) >= 2) {
-                        $query->whereBetween("$table.$key", [$value[0], $value[1]]);
+                    if (!isset($relations[$domain])) {
+                        $relations[$domain] = [];
                     }
-                } elseif ($operator === 'in') {
-                    $inArgs = is_array($value) ? $value : [$value];
-                    $query->whereIn("$table.$key", $inArgs);
-                } else {
-                    $query->where("$table.$key", $operator, $value);
+
+                    $relations[$domain][$filterParam] = $param;
+                } elseif (Schema::hasColumn($table, $key) &&
+                    !in_array($key, static::RESERVED_REQUEST_KEYWORDS, true) &&
+                    !in_array($key, $model->getHidden(), true)
+                ) {
+                    [$operator, $value] = is_array($param) ? array_values($param) : ['=', $param];
+
+                    if (is_array($value) && $operator !== 'in') {
+                        if ($operator === '=') {
+                            $query->whereIn("$table.$key", $value);
+                        } elseif ($operator === 'between' && count($value) >= 2) {
+                            $query->whereBetween("$table.$key", [$value[0], $value[1]]);
+                        }
+                    } elseif ($operator === 'in') {
+                        $inArgs = is_array($value) ? $value : [$value];
+                        $query->whereIn("$table.$key", $inArgs);
+                    } else {
+                        $query->where("$table.$key", $operator, $value);
+                    }
                 }
             }
         }
-
-        $self = $this;
 
         if (!empty($relations)) {
             foreach ($relations as $domain => $filters) {
                 if (!method_exists($model, $domain)) {
                     $cls = get_class($model);
-                    throw new RuntimeException("Unknown relation {$cls}::{$domain}()");
+                    throw new RuntimeException("Unknown relation $cls::$domain()");
                 }
 
                 /** @var Relation $relationQuery */
                 $relationQuery = $model->{$domain}();
-                if (!$first) {
-                    $query->orWhereHas($domain, static function ($q) use ($self, $filters, $relationQuery, $first) {
-                        $self->apply($q, $relationQuery->getModel(), $filters, $first);
-                    });
-                } else {
-                    $query->WhereHas($domain, static function ($q) use ($self, $filters, $relationQuery, $first) {
-                        $self->apply($q, $relationQuery->getModel(), $filters, $first);
-                    });
-                }
-                $first = false;
+
+                $query->whereHas($domain, static function ($q) use ($filters, $relationQuery, $first) {
+                    QueryHelper::apply($q, $relationQuery->getModel(), ['where' => $filters], $first);
+                });
             }
         }
     }
 
     /**
-     * @param array|string $filter
-     *
-     * @return array
      * @throws Exception
      */
-    protected function getRelationsFilter($filter): array
+    private static function getRelationsFilter(array $filter): array
     {
-        if (!is_array($filter)) {
-            if (is_string($filter)) {
-                $filter = explode(',', str_replace(' ', '', $filter));
-            } else {
-                throw new \RuntimeException(
-                    'Relation filter must be a type of array or string, ' . gettype($filter) . ' given in'
-                );
-            }
+        $key = array_search('can', $filter, true);
+        if ($key !== false) {
+            array_splice($filter, $key, 1);
+
+            Filter::listen(Filter::getActionFilterName(), static function ($data) {
+                if ($data instanceof Model) {
+                    $data->append('can');
+                    return $data;
+                }
+
+                if ($data instanceof Collection) {
+                    return $data->map(static fn(Model $el) => $el->append('can'));
+                }
+
+                if ($data instanceof AbstractPaginator) {
+                    $data->setCollection($data->getCollection()->map(static fn(Model $el) => $el->append('can')));
+                    return $data;
+                }
+
+                return $data;
+            });
         }
 
         return $filter;
     }
 
     /**
-     * @param EloquentBuilder|QueryBuilder $query
+     * @param Builder $query
      * @param string $search
      * @param string[] $fields
      *
-     * @return EloquentBuilder|QueryBuilder
+     * @return Builder
      */
-    protected function buildSearchQuery($query, string $search, array $fields)
+    private static function buildSearchQuery(Builder $query, string $search, array $fields): Builder
     {
         $value = "%$search%";
 
         return $query->where(static function ($query) use ($value, $fields) {
             $field = array_shift($fields);
-            if (strpos($field, '.') !== false) {
+            if (str_contains($field, '.')) {
                 [$relation, $relationField] = explode('.', $field);
-                $query->whereHas($relation, static function ($query) use ($relationField, $value) {
-                    $query->where($relationField, 'like', $value);
-                });
+                $query->whereHas($relation, static fn(Builder $query) => $query->where($relationField, 'like', $value)
+                );
             } else {
                 $query->where($field, 'like', $value);
             }
 
             foreach ($fields as $field) {
-                if (strpos($field, '.') !== false) {
+                if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
-                    $query->orWhereHas($relation, static function ($query) use ($relationField, $value) {
-                        $query->where($relationField, 'like', $value);
-                    });
+                    $query->orWhereHas($relation, static fn(Builder $query) => $query->where($relationField, 'like', $value)
+                    );
                 } else {
                     $query->orWhere($field, 'like', $value);
                 }
             }
         });
+    }
+
+    public static function getValidationRules(): array
+    {
+        return [
+            'limit' => 'sometimes|int',
+            'offset' => 'sometimes|int',
+            'orderBy' => 'sometimes|array',
+            'with.*' => 'sometimes|string',
+            'withCount.*' => 'sometimes|string',
+            'search.query' => 'sometimes|string|nullable',
+            'search.fields.*' => 'sometimes|string',
+            'where' => 'sometimes|array',
+        ];
     }
 }

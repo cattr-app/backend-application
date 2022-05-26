@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use App\Scopes\ProjectScope;
+use App\Scopes\ProjectAccessScope;
 use App\Traits\ExposePermissions;
+use Database\Factories\ProjectFactory;
 use Eloquent as EloquentIdeHelper;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
@@ -45,17 +46,17 @@ use Illuminate\Support\Carbon;
  * @property int $important
  * @property string $source
  * @property int|null $default_priority_id
- * @property-read \App\Models\Priority|null $defaultPriority
+ * @property-read Priority|null $defaultPriority
  * @property-read array $can
- * @property-read Collection|\App\Models\Role[] $roles
+ * @property-read Collection|Role[] $roles
  * @property-read int|null $roles_count
- * @property-read Collection|\App\Models\Status[] $statuses
+ * @property-read Collection|Status[] $statuses
  * @property-read int|null $statuses_count
- * @property-read Collection|\App\Models\Task[] $tasks
+ * @property-read Collection|Task[] $tasks
  * @property-read int|null $tasks_count
- * @property-read Collection|\App\Models\User[] $users
+ * @property-read Collection|User[] $users
  * @property-read int|null $users_count
- * @method static \Database\Factories\ProjectFactory factory(...$parameters)
+ * @method static ProjectFactory factory(...$parameters)
  * @method static EloquentBuilder|Project newModelQuery()
  * @method static EloquentBuilder|Project newQuery()
  * @method static QueryBuilder|Project onlyTrashed()
@@ -114,19 +115,8 @@ class Project extends Model
         'updated_at',
     ];
 
-    /**
-     * @var array
-     */
-    protected $appends = ['can'];
+    protected const PERMISSIONS = ['update', 'update_members', 'destroy'];
 
-    /**
-     * @var array
-     */
-    protected $permissions = [
-        'update',
-        'update_members',
-        'destroy',
-    ];
 
     /**
      * Override parent boot and Call deleting event
@@ -135,7 +125,7 @@ class Project extends Model
     {
         parent::boot();
 
-        static::addGlobalScope(new ProjectScope);
+        static::addGlobalScope(new ProjectAccessScope);
 
         static::deleting(static function (Project $project) {
             $project->tasks()->delete();

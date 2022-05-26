@@ -2,50 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Requests\Priority\CountPriorityRequestCattr;
-use App\Http\Requests\Priority\CreatePriorityRequestCattr;
-use App\Http\Requests\Priority\ShowPriorityRequestCattr;
-use App\Http\Requests\Priority\UpdatePriorityRequestCattr;
-use App\Http\Requests\Project\DestroyProjectRequestCattr;
+use App\Http\Requests\Priority\CreatePriorityRequest;
+use App\Http\Requests\Priority\DestroyPriorityRequest;
+use App\Http\Requests\Priority\ListPriorityRequest;
+use App\Http\Requests\Priority\ShowPriorityRequest;
+use App\Http\Requests\Priority\UpdatePriorityRequest;
 use App\Models\Priority;
 use Exception;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Throwable;
 
 class PriorityController extends ItemController
 {
-    /**
-     * Get the validation rules.
-     *
-     * @return array
-     */
-    public function getValidationRules(): array
-    {
-        return [];
-    }
+    protected const MODEL = Priority::class;
 
     /**
-     * Get the event unique name part.
-     *
-     * @return string
-     */
-    public function getEventUniqueNamePart(): string
-    {
-        return 'priority';
-    }
-
-    /**
-     * Get the model class.
-     *
-     * @return string
-     */
-    public function getItemClass(): string
-    {
-        return Priority::class;
-    }
-
-    /**
-     * @throws Exception
+     * @throws Throwable
      * @api             {post} /priorities/show Show
      * @apiDescription  Show priority.
      *
@@ -80,7 +52,7 @@ class PriorityController extends ItemController
      * @apiUse          UnauthorizedError
      *
      */
-    public function show(ShowPriorityRequestCattr $request): JsonResponse
+    public function show(ShowPriorityRequest $request): JsonResponse
     {
         return $this->_show($request);
     }
@@ -114,14 +86,15 @@ class PriorityController extends ItemController
      * @apiUse          UnauthorizedError
      *
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListPriorityRequest $request): JsonResponse
     {
         return $this->_index($request);
     }
 
     /**
-     * @param CreatePriorityRequestCattr $request
+     * @param CreatePriorityRequest $request
      * @return JsonResponse
+     * @throws Throwable
      * @api             {post} /priorities/create Create
      * @apiDescription  Creates priority
      *
@@ -158,13 +131,13 @@ class PriorityController extends ItemController
      * @apiUse          400Error
      * @apiUse          UnauthorizedError
      */
-    public function create(CreatePriorityRequestCattr $request): JsonResponse
+    public function create(CreatePriorityRequest $request): JsonResponse
     {
         return $this->_create($request);
     }
 
     /**
-     * @throws Exception
+     * @throws Throwable
      * @api             {post} /priorities/edit Edit
      * @apiDescription  Edit Priority
      *
@@ -204,13 +177,13 @@ class PriorityController extends ItemController
      * @apiUse         UnauthorizedError
      * @apiUse         ItemNotFoundError
      */
-    public function edit(UpdatePriorityRequestCattr $request): JsonResponse
+    public function edit(UpdatePriorityRequest $request): JsonResponse
     {
         return $this->_edit($request);
     }
 
     /**
-     * @throws Exception
+     * @throws Throwable
      * @api             {post} /priorities/remove Destroy
      * @apiDescription  Destroy User
      *
@@ -240,17 +213,17 @@ class PriorityController extends ItemController
      * @apiUse          ForbiddenError
      * @apiUse          UnauthorizedError
      */
-    public function destroy(DestroyProjectRequestCattr $request): JsonResponse
+    public function destroy(DestroyPriorityRequest $request): JsonResponse
     {
         return $this->_destroy($request);
     }
 
     /**
-     * @param CountPriorityRequestCattr $request
+     * @param ListPriorityRequest $request
      * @return JsonResponse
      * @throws Exception
      */
-    public function count(CountPriorityRequestCattr $request): JsonResponse
+    public function count(ListPriorityRequest $request): JsonResponse
     {
         return $this->_count($request);
     }

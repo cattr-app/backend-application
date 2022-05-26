@@ -188,8 +188,7 @@ return [
         'public/**/*.php',
         'resources/**/*.php',
         'routes',
-        'composer.lock',
-        '.env',
+        'Modules/**/*.php',
     ],
 
     /*
@@ -216,6 +215,5 @@ return [
     |
     */
 
-    'max_execution_time' => 30,
-
+    'max_execution_time' => 90,
 ];

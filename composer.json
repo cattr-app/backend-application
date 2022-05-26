@@ -1,21 +1,30 @@
 {
   "name": "cattr/backend-application",
   "description": "Backend Application for Cattr",
-  "version": "4.0.0-RC1",
-  "license": "SSPL-1.0",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "project",
+  "homepage": "https://cattr.app",
+  "support": {
+    "email": "hi@cattr.app",
+    "docs": "https://docs.cattr.app/backend#/",
+    "forum": "https://community.cattr.app/public/",
+    "issues": "https://git.amazingcat.net/AmazingTime/core/cattr-backend/-/issues",
+    "chat": "https://cattr.app",
+    "source": "https://git.amazingcat.net/AmazingTime/core/cattr-backend"
+  },
   "require": {
-    "php": "^8",
+    "php": "~8.1",
     "ext-gd": "*",
     "ext-json": "*",
     "ext-pdo": "*",
+    "czproject/git-php": "^4.0",
     "bensampo/laravel-enum": "^5.3",
-    "cattr/laravel-mysql-spatial": "dev-master",
     "doctrine/dbal": "^2.13",
     "erusev/parsedown": "^1.7",
     "fakerphp/faker": "^1.19",
     "flugger/laravel-responder": "dev-master",
     "fruitcake/laravel-cors": "^2.2",
+    "grimzy/laravel-mysql-spatial": "^5.0.1",
     "intervention/image": "^2.7",
     "joshbrw/laravel-module-installer": "^2.0",
     "laravel/framework": "^9.3",
@@ -36,7 +45,8 @@
     "wikimedia/composer-merge-plugin": "^2.0"
   },
   "require-dev": {
-    "cattr/laravel-ide-helper": "dev-master",
+    "barryvdh/laravel-ide-helper": "^2.12.3",
+    "itsgoingd/clockwork": "^5.1",
     "mockery/mockery": "^1.5",
     "phpunit/phpunit": "^9.5",
     "roave/security-advisories": "dev-latest",
@@ -52,8 +62,6 @@
     }
   },
   "scripts": {
-    "phpcs": "vendor/bin/phpcs --standard=./phpcs.xml --colors",
-    "phpcbf": "vendor/bin/phpcbf --standard=./phpcs.xml --colors",
     "project:update": [
       "@composer update",
       "@php artisan migrate",
@@ -72,12 +80,8 @@
     "config:update": [
       "@php artisan package:discover"
     ],
-    "post-install-cmd": [
-      "Illuminate\\Foundation\\ComposerScripts::postInstall",
-      "@config:update"
-    ],
-    "post-update-cmd": [
-      "Illuminate\\Foundation\\ComposerScripts::postUpdate",
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
       "@config:update"
     ]
   },
@@ -88,7 +92,10 @@
     "allow-plugins": {
       "joshbrw/laravel-module-installer": true,
       "wikimedia/composer-merge-plugin": true
-    }
+    },
+    "gitlab-domains": [
+      "git.amazingcat.net"
+    ]
   },
   "autoload-dev": {
     "classmap": [
@@ -100,16 +107,10 @@
   },
   "repositories": [
     {
-      "type": "vcs",
-      "url": "https://github.com/cattr-app/laravel-mysql-spatial.git"
-    },
-    {
-      "type": "vcs",
-      "url": "https://github.com/cattr-app/laravel-ide-helper.git"
+      "type": "composer",
+      "url": "https://git.amazingcat.net/api/v4/group/cattr/-/packages/composer/"
     }
   ],
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "extra": {
     "merge-plugin": {
       "include": [
@@ -122,16 +123,6 @@
       "merge-extra": false,
       "merge-extra-deep": false,
       "merge-scripts": false
-    },
-    "hooks": {
-      "pre-commit": [
-        "OUTPUT=$(vendor/bin/phpcbf --standard=./phpcs.xml)",
-        "RETVAL=$?",
-        "if [ $RETVAL -ne 0 ]; then",
-        "echo $OUTPUT | less",
-        "fi",
-        "exit $RETVAL"
-      ]
     }
   }
 }

@@ -8,18 +8,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 class UserFactory extends Factory
 {
-    /**
-     * The name of the factory's corresponding model.
-     *
-     * @var string
-     */
     protected $model = User::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array
-     */
     public function definition(): array
     {
         return [
@@ -30,6 +20,13 @@ class UserFactory extends Factory
             'role_id' => 2,
             'active' => true,
             'is_admin' => false,
+            'type' => 'employee',
+            'last_activity' => now()->subMinutes(random_int(1, 55)),
         ];
+    }
+
+    public function admin(): UserFactory
+    {
+        return $this->state(fn () => ['is_admin' => true]);
     }
 }

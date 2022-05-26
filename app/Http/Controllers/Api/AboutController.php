@@ -8,11 +8,13 @@ use App\Helpers\ReportHelper;
 use App\Helpers\StorageCleaner;
 use App\Helpers\Version;
 use Artisan;
+use Cache;
 use Exception;
 use GuzzleHttp\Client;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use JsonException;
 use Settings;
 
 class AboutController extends Controller
@@ -133,8 +135,8 @@ class AboutController extends Controller
             'need_thinning' => StorageCleaner::needThinning(),
             'screenshots_available' => StorageCleaner::countAvailableScreenshots(),
             'thinning' => [
-                'now' => cache('thinning_now'),
-                'last' => cache('last_thin'),
+                'now' => Cache::store('octane')->get('thinning_now'),
+                'last' => Cache::store('octane')->get('last_thin'),
             ]
         ])->respond();
     }

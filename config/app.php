@@ -10,7 +10,7 @@ return [
     'json_errors' => env('JSON_ERRORS', true),
     'url' => env('APP_URL', 'http://localhost'),
     'frontend_url' => env('FRONTEND_APP_URL'),
-    'timezone' => 'UTC',
+    'timezone' => date_default_timezone_get(),
     'languages' => ['en', 'ru'],
     'locale' => 'en',
     'fallback_locale' => 'en',
@@ -61,10 +61,9 @@ return [
         App\Providers\FilterServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\TelescopeServiceProvider::class,
-        App\Providers\IntervalProofsProvider::class,
 
         App\Providers\SettingsServiceProvider::class,
-        App\Providers\GraphQLServiceProvider::class,
+        App\Providers\ScreenshotsServiceProvider::class,
     ],
     'aliases' => [
 

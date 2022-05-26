@@ -2,60 +2,24 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Requests\Invitation\CountInvitationRequestCattr;
-use App\Http\Requests\Invitation\CreateInvitationRequestCattr;
-use App\Http\Requests\Invitation\ListInvitationRequestCattr;
-use App\Http\Requests\Invitation\DestroyInvitationRequestCattr;
-use App\Http\Requests\Invitation\ShowInvitationRequestCattr;
-use App\Http\Requests\Invitation\UpdateInvitationRequestCattr;
+use App\Http\Requests\Invitation\CreateInvitationRequest;
+use App\Http\Requests\Invitation\ListInvitationRequest;
+use App\Http\Requests\Invitation\DestroyInvitationRequest;
+use App\Http\Requests\Invitation\ShowInvitationRequest;
+use App\Http\Requests\Invitation\UpdateInvitationRequest;
 use App\Models\Invitation;
 use App\Services\InvitationService;
 use Exception;
+use Filter;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Throwable;
 
 class InvitationController extends ItemController
 {
-    /**
-     * InvitationController constructor.
-     * @param InvitationService $service
-     */
-    public function __construct(protected InvitationService $service)
-    {
-    }
+    protected const MODEL = Invitation::class;
 
     /**
-     * Get the validation rules.
-     *
-     * @return array
-     */
-    public function getValidationRules(): array
-    {
-        return [];
-    }
-
-    /**
-     * Get the event unique name part.
-     *
-     * @return string
-     */
-    public function getEventUniqueNamePart(): string
-    {
-        return 'invitation';
-    }
-
-    /**
-     * Get the model class.
-     *
-     * @return string
-     */
-    public function getItemClass(): string
-    {
-        return Invitation::class;
-    }
-
-    /**
-     * @throws Exception
+     * @throws Throwable
      * @api             {post} /invitations/show Show
      * @apiDescription  Show invitation.
      *
@@ -93,7 +57,7 @@ class InvitationController extends ItemController
      * @apiUse          UnauthorizedError
      *
      */
-    public function show(ShowInvitationRequestCattr $request): JsonResponse
+    public function show(ShowInvitationRequest $request): JsonResponse
     {
         return $this->_show($request);
     }
@@ -130,13 +94,13 @@ class InvitationController extends ItemController
      * @apiUse          UnauthorizedError
      *
      */
-    public function index(ListInvitationRequestCattr $request): JsonResponse
+    public function index(ListInvitationRequest $request): JsonResponse
     {
         return $this->_index($request);
     }
 
     /**
-     * @param CreateInvitationRequestCattr $request
+     * @param CreateInvitationRequest $request
      * @return JsonResponse
      * @throws Exception
      * @api             {post} /invitations/create Create
@@ -207,21 +171,21 @@ class InvitationController extends ItemController
      * @apiUse          400Error
      * @apiUse          UnauthorizedError
      */
-    public function create(CreateInvitationRequestCattr $request): JsonResponse
+    public function create(CreateInvitationRequest $request): JsonResponse
     {
-        $requestData = $request->validated();
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
 
         $invitations = [];
 
         foreach ($requestData['users'] as $user) {
-            $invitations[] = $this->service->create($user);
+            $invitations[] = InvitationService::create($user);
         }
 
         return responder()->success($invitations)->respond();
     }
 
     /**
-     * @param UpdateInvitationRequestCattr $request
+     * @param UpdateInvitationRequest $request
      * @return JsonResponse
      * @throws Exception
      *
@@ -273,17 +237,17 @@ class InvitationController extends ItemController
      * @apiUse          UnauthorizedError
      *
      */
-    public function resend(UpdateInvitationRequestCattr $request): JsonResponse
+    public function resend(UpdateInvitationRequest $request): JsonResponse
     {
-        $requestData = $request->validated();
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
 
-        $invitation = $this->service->update($requestData['id']);
+        $invitation = InvitationService::update($requestData['id']);
 
         return responder()->success($invitation)->respond();
     }
 
     /**
-     * @throws Exception
+     * @throws Throwable
      * @api             {post} /invitations/remove Destroy
      * @apiDescription  Destroy User
      *
@@ -313,17 +277,17 @@ class InvitationController extends ItemController
      * @apiUse          ForbiddenError
      * @apiUse          UnauthorizedError
      */
-    public function destroy(DestroyInvitationRequestCattr $request): JsonResponse
+    public function destroy(DestroyInvitationRequest $request): JsonResponse
     {
         return $this->_destroy($request);
     }
 
     /**
-     * @param CountInvitationRequestCattr $request
+     * @param ListInvitationRequest $request
      * @return JsonResponse
      * @throws Exception
      */
-    public function count(CountInvitationRequestCattr $request): JsonResponse
+    public function count(ListInvitationRequest $request): JsonResponse
     {
         return $this->_count($request);
     }

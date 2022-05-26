@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App;
 use App\Console\Commands\MakeAdmin;
 use App\Console\Commands\ResetCommand;
+use App\Exceptions\Entities\AppAlreadyInstalledException;
 use App\Helpers\EnvUpdater;
-use App\Http\Requests\Installation\CheckDatabaseInfoRequestCattr;
+use App\Http\Requests\Installation\CheckDatabaseInfoRequest;
 use App\Http\Requests\Installation\SaveSetupRequest;
 use Artisan;
 use Exception;
@@ -19,8 +20,12 @@ use Throwable;
 
 class InstallationController extends Controller
 {
-    public function checkDatabaseInfo(CheckDatabaseInfoRequestCattr $request): JsonResponse
+    public function checkDatabaseInfo(CheckDatabaseInfoRequest $request): JsonResponse
     {
+        if(Settings::scope('core')->get('installed', false)) {
+            throw new AppAlreadyInstalledException;
+        }
+
         config([
             'database.connections.mysql.password' => $request->input('db_password'),
             'database.connections.mysql.database' => $request->input('database'),
@@ -42,6 +47,10 @@ class InstallationController extends Controller
 
     public function save(SaveSetupRequest $request): JsonResponse
     {
+        if(Settings::scope('core')->get('installed', false)) {
+            throw new AppAlreadyInstalledException;
+        }
+
         $envFilepath = App::environmentFilePath();
 
         if (!file_exists($envFilepath)) {

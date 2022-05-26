@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\CompanySettings\UpdateCompanySettingsRequestCattr;
+use App\Http\Requests\CompanySettings\UpdateCompanySettingsRequest;
 use App\Http\Transformers\CompanySettingsTransformer;
 use App\Models\Priority;
 use Illuminate\Http\JsonResponse;
@@ -11,10 +11,6 @@ use Settings;
 
 class CompanySettingsController extends Controller
 {
-    public function __construct(protected Priority $priorities)
-    {
-    }
-
     /**
      * @api             {get} /company-settings/index List
      * @apiDescription  Returns all company settings.
@@ -57,23 +53,20 @@ class CompanySettingsController extends Controller
      *
      * @apiUse          400Error
      * @apiUse          UnauthorizedError
-     *
      */
     public function index(): JsonResponse
     {
         return responder()->success(
             array_merge(
                 Settings::scope('core')->all(),
-                [
-                    'internal_priorities' => $this->priorities->all(),
-                ]
+                ['internal_priorities' => Priority::all()]
             ),
             new CompanySettingsTransformer
         )->respond();
     }
 
     /**
-     * @param UpdateCompanySettingsRequestCattr $request
+     * @param UpdateCompanySettingsRequest $request
      *
      * @return JsonResponse
      *
@@ -150,7 +143,7 @@ class CompanySettingsController extends Controller
      * @apiUse          UnauthorizedError
      *
      */
-    public function update(UpdateCompanySettingsRequestCattr $request): JsonResponse
+    public function update(UpdateCompanySettingsRequest $request): JsonResponse
     {
         Settings::scope('core')->set($request->validated());
 

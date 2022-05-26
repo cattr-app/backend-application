@@ -2,69 +2,53 @@
 
 namespace App\Policies;
 
-use App\Models\Task;
+use App\Models\Project;
 use App\Models\TimeInterval;
 use App\Models\User;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use Cache;
+use Illuminate\Contracts\Database\Query\Builder;
 
 class TimeIntervalPolicy
 {
-    use HandlesAuthorization;
-
-    /**
-     * @param User $user
-     * @return bool
-     */
-    public function before(User $user)
+    public function before(User $user): ?bool
     {
-        if ($user->hasRole('admin')) {
-            return true;
-        }
+        return $user->isAdmin() ?: null;
     }
 
-    /**
-     * Determine if the given time interval can be viewed by the user.
-     *
-     * @param User $user
-     * @param TimeInterval $timeInterval
-     * @return bool
-     */
+    public function viewAny(): bool
+    {
+        return true;
+    }
+
     public function view(User $user, TimeInterval $timeInterval): bool
     {
-        return TimeInterval::find(optional($timeInterval)->id)->exists();
+        return Cache::store('octane')->remember(
+            "role_user_interval_{$user->id}_$timeInterval->id",
+            config('cache.role_caching_ttl'),
+            static fn() => TimeInterval::whereId($timeInterval->id)->exists(),
+        );
     }
 
-    /**
-     * Determine if the given time interval can be created by the user.
-     *
-     * @param User $user
-     * @param int $projectId
-     * @return bool
-     */
-    public function create(User $user, int $projectId): bool
+    public function create(User $user, int $userId, int $taskId, bool $isManual): bool
     {
-        return $user->hasProjectRole('manager', $projectId);
+        $projectId = self::getProjectIdByTaskId($taskId);
+
+        if ($isManual) {
+            if ($user->id !== $userId) {
+                return $user->hasRole('manager') || $user->hasProjectRole('manager', $projectId);
+            }
+
+            return $user->hasProjectRole('user', $projectId) && $user->manual_time;
+        }
+
+        return $user->hasProjectRole('user', $projectId);
     }
 
-    /**
-     * Determine if the given time interval can be updated by the user.
-     *
-     * @param User $user
-     * @param TimeInterval $timeInterval
-     * @return bool
-     */
     public function update(User $user, TimeInterval $timeInterval): bool
     {
         return $user->id === $timeInterval->user_id;
     }
 
-    /**
-     * Determine if the given time intervals can be updated by the user.
-     *
-     * @param User $user
-     * @param array $timeIntervalIds
-     * @return bool
-     */
     public function bulkUpdate(User $user, array $timeIntervalIds): bool
     {
         foreach ($timeIntervalIds as $id) {
@@ -108,5 +92,17 @@ class TimeIntervalPolicy
         }
 
         return true;
+    }
+
+    private static function getProjectIdByTaskId(int $taskId): int
+    {
+        return Cache::store('octane')->remember(
+            "role_project_of_task_$taskId",
+            config('cache.role_caching_ttl'),
+            static fn() => Project::whereHas(
+                'tasks',
+                static fn(Builder $query) => $query->where('id', '=', $taskId)
+            )->firstOrFail()->id
+        );
     }
 }

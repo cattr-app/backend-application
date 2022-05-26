@@ -2,25 +2,24 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\CattrFormRequest;
 use Filter;
 use App\Helpers\QueryHelper;
 use App\Http\Controllers\Controller;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Event;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
-use Validator;
 
 abstract class ItemController extends Controller
 {
+    protected const MODEL = Model::class;
+
     /**
      * @apiDefine ItemNotFoundError
      * @apiErrorExample {json} No such item
@@ -49,74 +48,37 @@ abstract class ItemController extends Controller
      */
 
     /**
-     * Display a listing of the resource.
-     * @param Request $request
-     * @return JsonResponse
      * @throws Exception
      */
-    public function _index(Request $request): JsonResponse
+    public function _index(CattrFormRequest $request): JsonResponse
     {
-        /** @var Builder $itemsQuery */
-        $itemsQuery = Filter::process(
-            Filter::getQueryPrepareFilterName(),
-            $this->applyQueryFilter(
-                $this->getQuery(),
-                $request->all() ?: []
-            )
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
+
+        $itemsQuery = $this->getQuery($requestData);
+
+        Event::dispatch(Filter::getBeforeActionEventName(), $requestData);
+
+        $items = $request->header('X-Paginate', true) !== 'false' ? $itemsQuery->paginate() : $itemsQuery->get();
+
+        Filter::process(
+            Filter::getActionFilterName(),
+            $items,
         );
 
-        return responder()->success(
-            $request->header('X-Paginate', true) !== 'false' ? $itemsQuery->paginate() : $itemsQuery->get()
-        )->respond();
+        Event::dispatch(Filter::getAfterActionEventName(), [$items, $requestData]);
+
+        return responder()->success($items)->respond();
     }
 
     /**
-     * Returns event's name with current item's unique part
-     * @param string $eventName
-     * @return String
-     */
-    protected function getEventUniqueName(string $eventName): string
-    {
-        return "$eventName.{$this->getEventUniqueNamePart()}";
-    }
-
-    /**
-     * Returns unique part of event name for current item
-     */
-    abstract public function getEventUniqueNamePart(): string;
-
-    /**
-     * @param Builder $query
-     * @param array $filter
-     * @return Builder
      * @throws Exception
      */
-    protected function applyQueryFilter(Builder $query, array $filter = []): Builder
+    protected function getQuery(array $filter = []): Builder
     {
-        $cls = static::getItemClass();
-        $model = new $cls();
-        $helper = new QueryHelper();
+        $model = static::MODEL;
+        $model = new $model;
 
-        $helper->apply($query, $model, $filter);
-
-        return Filter::process(
-            Filter::getQueryFiltrationFilterName(),
-            $query
-        );
-    }
-
-    /**
-     * Returns current item's class name
-     */
-    abstract public function getItemClass(): string;
-
-    protected function getQuery(bool $withRelations = true, bool $withSoftDeleted = false): Builder
-    {
-        /** @var Model $cls */
-        $cls = static::getItemClass();
-        $model = new $cls;
-
-        $query = new Builder($cls::getQuery());
+        $query = new Builder($model::getQuery());
         $query->setModel($model);
 
         $modelScopes = $model->getGlobalScopes();
@@ -125,220 +87,155 @@ abstract class ItemController extends Controller
             $query->withGlobalScope($key, $value);
         }
 
-        if ($withSoftDeleted) {
-            $query->withoutGlobalScope(SoftDeletingScope::class);
+        foreach (Filter::process(Filter::getQueryAdditionalRelationsFilterName(), []) as $with) {
+            $query->with($with);
         }
 
-        if ($withRelations) {
-            foreach ($this->getQueryWith() as $with) {
-                $query->with($with);
-            }
-        }
+        QueryHelper::apply($query, $model, $filter);
 
         return Filter::process(
-            Filter::getQueryGetFilterName(),
+            Filter::getQueryFilterName(),
             $query
         );
     }
 
-    public function getQueryWith(): array
-    {
-        return [];
-    }
-
-    /**
-     * Display count of the resource
-     *
-     * @param Request $request
-     * @return JsonResponse
-     * @throws Exception
-     */
-    public function _count(Request $request): JsonResponse
-    {
-        /** @var Builder $itemsQuery */
-        $itemsQuery = Filter::process(
-            filter::getQueryPrepareFilterName(),
-            $this->applyQueryFilter(
-                $this->getQuery(),
-                $request->all() ?: []
-            )
-        );
-
-        return responder()->success(['total' => $itemsQuery->count()])->respond();
-    }
-
     /**
      * @throws Throwable
      */
-    public function _create(FormRequest $request): JsonResponse
+    public function _create(CattrFormRequest $request): JsonResponse
     {
-        $requestData = $request->validated();
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
+
+        Event::dispatch(Filter::getBeforeActionEventName(), $requestData);
 
         /** @var Model $cls */
-        $cls = $this->getItemClass();
-
-        Event::dispatch($this->getEventUniqueName('item.create.before'), $requestData);
+        $cls = static::MODEL;
 
         $item = Filter::process(
-            $this->getEventUniqueName('item.create'),
-            $cls::create($this->filterRequestData($requestData))
+            Filter::getActionFilterName(),
+            $cls::create($requestData),
         );
 
-        Event::dispatch($this->getEventUniqueName('item.create.after'), [$item, $requestData]);
+        Event::dispatch(Filter::getAfterActionEventName(), [$item, $requestData]);
 
         return responder()->success($item)->respond();
     }
 
     /**
-     * Returns validation rules for current item
+     * @throws Throwable
      */
-    abstract public function getValidationRules(): array;
-
-    /**
-     * Opportunity to filtering request data
-     *
-     * Override this in child class for filtering
-     */
-    protected function filterRequestData(array $requestData): array
+    public function _edit(CattrFormRequest $request): JsonResponse
     {
-        return $requestData;
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
+
+        throw_unless(is_int($request->get('id')), ValidationException::withMessages(['Invalid id']));
+
+        $itemsQuery = $this->getQuery();
+
+        /** @var Model $item */
+        $item = $itemsQuery->get()->collect()->firstWhere('id', $request->get('id'));
+
+        if (!$item) {
+            /** @var Model $cls */
+            $cls = static::MODEL;
+            throw_if($cls::find($request->get('id'))?->count(), new AccessDeniedHttpException);
+
+            throw new NotFoundHttpException;
+        }
+
+        Event::dispatch(Filter::getBeforeActionEventName(), [$item, $requestData]);
+
+        $item = Filter::process(Filter::getActionFilterName(), $item->fill($requestData));
+        $item->save();
+
+        Event::dispatch(Filter::getAfterActionEventName(), [$item, $requestData]);
+
+        return responder()->success($item)->respond();
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     * @throws Exception
      * @throws Throwable
      */
-    public function _show(Request $request): JsonResponse
+    public function _destroy(CattrFormRequest $request): JsonResponse
     {
-        $itemId = (int)$request->input('id');
+        $requestId = Filter::process(Filter::getRequestFilterName(), $request->validated('id'));
+
+        throw_unless(is_int($requestId), ValidationException::withMessages(['Invalid id']));
+
+        $itemsQuery = $this->getQuery(['where' => ['id' => $requestId]]);
+
+        /** @var Model $item */
+        $item = $itemsQuery->first();
+        if (!$item) {
+            /** @var Model $cls */
+            $cls = static::MODEL;
+            throw_if($cls::find($requestId)?->count(), new AccessDeniedHttpException);
+
+            throw new NotFoundHttpException;
+        }
+
+        Event::dispatch(Filter::getBeforeActionEventName(), $requestId);
+
+        Event::dispatch(
+            Filter::getAfterActionEventName(),
+            tap(
+                Filter::process(Filter::getActionFilterName(), $item),
+                static fn($item) => $item->delete(),
+            )
+        );
+
+        return responder()->success()->respond(204);
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function _count(CattrFormRequest $request): JsonResponse
+    {
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
+
+        Event::dispatch(Filter::getBeforeActionEventName(), $requestData);
+
+        $itemsQuery = $this->getQuery($requestData);
+
+        $count = Filter::process(Filter::getActionFilterName(), $itemsQuery->count());
+
+        Event::dispatch(Filter::getAfterActionEventName(), [$count, $requestData]);
+
+        clock()->event();
+
+        return responder()->success(['total' => $count])->respond();
+    }
+
+    /**
+     * @throws Throwable
+     */
+    protected function _show(CattrFormRequest $request): JsonResponse
+    {
+        $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
+
+        $itemId = (int)$requestData['id'];
 
         throw_unless($itemId, ValidationException::withMessages(['Invalid id']));
 
         $filters = [
-            'id' => $itemId
+            'where' => ['id' => $itemId]
         ];
-        $request->get('with') ? $filters['with'] = $request->get('with') : false;
-        /** @var Builder $itemsQuery */
-        $itemsQuery = Filter::process(
-            Filter::getQueryPrepareFilterName(),
-            $this->applyQueryFilter(
-                $this->getQuery(),
-                $filters ?: []
-            )
-        );
 
-        $item = $itemsQuery->first();
+        if (!empty($requestData['with'])) {
+            $filters['with'] = $requestData['with'];
+        }
+
+        Event::dispatch(Filter::getBeforeActionEventName(), $filters);
+
+        $itemsQuery = $this->getQuery($filters ?: []);
+
+        $item = Filter::process(Filter::getActionFilterName(), $itemsQuery->first());
 
         throw_unless($item, new NotFoundHttpException);
 
-        return responder()->success($item)->respond();
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     * @throws Exception
-     * @throws Throwable
-     */
-    public function _edit(Request $request): JsonResponse
-    {
-        $requestData = Filter::process(
-            $this->getEventUniqueName('request.item.edit'),
-            $request->all()
-        );
-
-        $validationRules = $this->getValidationRules();
-        $validationRules['id'] = ['required'];
-
-        $validator = Validator::make(
-            $requestData,
-            Filter::process(
-                $this->getEventUniqueName('validation.item.edit'),
-                $validationRules
-            )
-        );
-
-        throw_if($validator->fails(), ValidationException::withMessages($validator->messages()->all()));
-
-        throw_unless(is_int($request->get('id')), ValidationException::withMessages(['Invalid id']));
-
-        /** @var Builder $itemsQuery */
-        $itemsQuery = Filter::process(
-            filter::getQueryPrepareFilterName(),
-            $this->applyQueryFilter(
-                $this->getQuery()
-            )
-        );
-
-        /** @var Model $item */
-        $item = collect($itemsQuery->get())->first(static function ($val, $key) use ($request) {
-            return $val['id'] === $request->get('id');
-        });
-
-        if (!$item) {
-            /** @var Model $cls */
-            $cls = $this->getItemClass();
-            throw_if($cls::find($request->get('id'))?->count(), new AccessDeniedHttpException);
-
-            throw new NotFoundHttpException;
-        }
-
-        Event::dispatch($this->getEventUniqueName('item.edit.before'), [$item, $requestData]);
-
-        $item->fill($this->filterRequestData($requestData));
-        $item = Filter::process($this->getEventUniqueName('item.edit'), $item);
-        $item->save();
-
-        Event::dispatch($this->getEventUniqueName('item.edit.after'), [$item, $requestData]);
+        Event::dispatch(Filter::getAfterActionEventName(), [$item, $filters]);
 
         return responder()->success($item)->respond();
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     * @throws Throwable
-     */
-    public function _destroy(Request $request): JsonResponse
-    {
-        $itemId = Filter::process($this->getEventUniqueName('request.item.destroy'), $request->get('id'));
-
-        throw_unless(is_int($itemId), ValidationException::withMessages(['Invalid id']));
-
-        /** @var Builder $itemsQuery */
-        $itemsQuery = Filter::process(
-            filter::getQueryPrepareFilterName(),
-            $this->applyQueryFilter(
-                $this->getQuery(),
-                ['id' => $itemId]
-            )
-        );
-
-        /** @var Model $item */
-        $item = $itemsQuery->first();
-        if (!$item) {
-            /** @var Model $cls */
-            $cls = $this->getItemClass();
-            throw_if($cls::find($request->get('id'))?->count(), new AccessDeniedHttpException);
-
-            throw new NotFoundHttpException;
-        }
-
-        Event::dispatch($this->getEventUniqueName('item.delete.before'), $item);
-
-        $item = Filter::process($this->getEventUniqueName('item.remove'), $item);
-        $item->delete();
-
-        Event::dispatch($this->getEventUniqueName('item.delete.after'), $item);
-
-        return responder()->success()->respond(204);
     }
 }

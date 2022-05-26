@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Exceptions\Entities\AuthorizationException;
+use Cache;
 use Eloquent as EloquentIdeHelper;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
@@ -96,5 +98,13 @@ class Role extends Model
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class, 'projects_roles', 'role_id', 'project_id');
+    }
+
+    public static function getIdByName(string $name): ?int
+    {
+        return Cache::store('octane')->rememberForever(
+            "role_id.$name",
+            static fn() => optional(self::firstWhere('name', $name))->id,
+        );
     }
 }

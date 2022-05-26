@@ -2,18 +2,11 @@
 
 namespace App\Traits;
 
+use Cache;
+use Illuminate\Database\Eloquent\Builder;
+
 trait HasRole
 {
-    /**
-     * Determine if the user has admin role.
-     *
-     * @return bool
-     */
-    public function isAdmin(): bool
-    {
-        return (bool) $this->is_admin;
-    }
-
     /**
      * Determine if the user has role.
      *
@@ -27,6 +20,16 @@ trait HasRole
         }
 
         return $this->role->name === $role;
+    }
+
+    /**
+     * Determine if the user has admin role.
+     *
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return (bool)$this->is_admin;
     }
 
     /**
@@ -53,18 +56,17 @@ trait HasRole
      */
     public function hasProjectRole(string $role, int $projectId = null): bool
     {
-        return $this
-            ->whereHas('projectsRelation', function ($query) use ($projectId, $role) {
-                $query->where('user_id', $this->id);
-
-                if ($projectId) {
-                    $query->where('project_id', $projectId);
-                }
-
-                $query->whereHas('role', function ($query) use ($role) {
-                    $query->where('name', $role);
-                });
-            })
-            ->exists();
+        $userId = $this->id;
+        return Cache::store('octane')->remember(
+            "role_project_{$role}_$projectId",
+            config('cache.role_caching_ttl'),
+            static fn() => self::whereHas(
+                'projectsRelation',
+                static fn(Builder $query) => $query
+                    ->where('user_id', $userId)
+                    ->when($projectId, static fn(Builder $query) => $query->where('project_id', $projectId))
+                    ->whereHas('role', static fn(Builder $query) => $query->where('name', $role))
+            )->exists(),
+        );
     }
 }

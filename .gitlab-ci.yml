@@ -1,108 +1,62 @@
-integration_testing:
-  image: php:8.0.13-alpine3.13
-  services:
-    - name: mysql:latest
-      alias: mysql
-      command: ["--default-authentication-plugin=mysql_native_password"]
-  variables:
-    MYSQL_DATABASE: cattr_tests
-    MYSQL_ROOT_PASSWORD: secret
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+stages:
+  - build
+  - test
+  - release
+
+sast:
   stage: test
-  before_script:
-    - apk update
-    - apk add libpng-dev freetype-dev libjpeg-turbo-dev libjpeg-turbo libpng freetype libzip libzip-dev git
-    - docker-php-ext-configure gd --with-jpeg=/usr/include/ --with-freetype=/usr/include/
-    - docker-php-ext-install -j$(getconf _NPROCESSORS_ONLN) gd
-    - docker-php-ext-install bcmath zip pdo_mysql
-    - apk add --no-cache $PHPIZE_DEPS
-    - pecl install xdebug
-    - docker-php-ext-enable xdebug
-    - curl --silent --show-error https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-  script:
-    - COMPOSER_MEMORY_LIMIT=-1 composer install --ignore-platform-reqs
-    - cp .env.testing.example .env.testing
-    - php artisan migrate --env=testing
-    - php artisan db:seed --class=InitialSeeder --env=testing
-    - XDEBUG_MODE=coverage php -c .testing.ini vendor/phpunit/phpunit/phpunit --coverage-text --colors=never --configuration phpunit.xml tests/Feature/
 
-apidoc_deploy:
-  image: node:alpine
-  stage: deploy
-  only:
-    - release
+sentry:
+  image: getsentry/sentry-cli:latest
+  stage: release
+  rules:
+    - if: $CI_COMMIT_TAG && $SENTRY_ORG
   before_script:
-    - 'which ssh-agent || ( apk add --update openssh )'
-    - eval $(ssh-agent -s)
-    - echo "$CI_SSH_DEPLOY_SECRET" | ssh-add -
-    - mkdir -p ~/.ssh
-    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-    - npm install
+    - export DOCKER_TAG=$(echo "$CI_COMMIT_REF_NAME" | sed 's/^v//g')
   script:
-    - npm run custom-api
-    - ssh cattr-deploy@docs.cattr.app 'rm -rf /srv/docs/api/*'
-    - scp -r apidoc/* cattr-deploy@docs.cattr.app:/srv/docs/api
+    - sentry-cli releases new --finalize "$DOCKER_TAG"
+    - sentry-cli releases set-commits --auto "$DOCKER_TAG"
 
-live_deploy:
-  image: alpine
-  stage: deploy
-  only:
-    - pre-release
+build:
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:20
+  stage: build
+  tags:
+    - privileged
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:20-dind
+      alias: docker
   before_script:
-    - 'which ssh-agent || ( apk add --update openssh )'
-    - eval $(ssh-agent -s)
-    - echo "$CI_KEY" | base64 -d | ssh-add -
-    - mkdir ~/.ssh
-    - ssh-keyscan -H $CI_HOST >> ~/.ssh/known_hosts
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - export DOCKER_TAG=$(echo "$CI_COMMIT_REF_NAME" | sed 's/^v//g')
   script:
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && git pull'
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && git submodule update --init'
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && composer install --ignore-platform-reqs'
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && sentry-cli releases new $(php artisan cattr:version)'
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && sentry-cli releases set-commits $(php artisan cattr:version) --auto'
-    - ssh $CI_USER@$CI_HOST 'php cattr/backend/artisan config:cache'
-    - ssh $CI_USER@$CI_HOST 'php cattr/backend/artisan migrate --force'
-    - ssh $CI_USER@$CI_HOST 'php cattr/backend/artisan queue:restart'
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && sentry-cli releases deploys $(php7.4 artisan cattr:version) new -e $(cat .env | grep "APP_ENV=.*" | cut -d"=" -f 2)'
-    - ssh $CI_USER@$CI_HOST 'cd cattr/backend && sentry-cli releases finalize $(php7.4 artisan cattr:version)'
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build --cache-from $CI_REGISTRY_IMAGE:latest -t $CI_REGISTRY_IMAGE:$DOCKER_TAG --build-arg "APP_VERSION=$DOCKER_TAG" --build-arg "SENTRY_DSN=$SENTRY_DSN" .
+    - docker push $CI_REGISTRY_IMAGE:$DOCKER_TAG
 
-staging_deploy:
-  image: alpine
-  stage: deploy
+mark_release:
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:20
+  stage: release
+  tags:
+    - privileged
   only:
-    - staging
+    - tags
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:20-dind
+      alias: docker
   before_script:
-    - 'which ssh-agent || ( apk add --update openssh )'
-    - eval $(ssh-agent -s)
-    - echo "$STAGING_KEY" | base64 -d | ssh-add -
-    - mkdir ~/.ssh
-    - ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - export DOCKER_TAG=$(echo "$CI_COMMIT_REF_NAME" | sed 's/^v//g')
   script:
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && git pull'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && git submodule update --init'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && composer install --ignore-platform-reqs'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && composer dump-autoload'
-    - ssh $STAGING_USER@$STAGING_HOST 'cp -f backend/.env.staging backend/.env && cat backend/.env.sentry >> backend/.env'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && sentry-cli releases new $(php artisan cattr:version)'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && sentry-cli releases set-commits $(php artisan cattr:version) --auto'
-    - ssh $STAGING_USER@$STAGING_HOST 'php backend/artisan route:clear'
-    - ssh $STAGING_USER@$STAGING_HOST 'php backend/artisan cache:clear'
-    - ssh $STAGING_USER@$STAGING_HOST 'php backend/artisan config:cache'
-    - ssh $STAGING_USER@$STAGING_HOST 'php backend/artisan migrate --force'
-    - ssh $STAGING_USER@$STAGING_HOST 'php cattr/backend/artisan queue:restart'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && sentry-cli releases deploys $(php artisan cattr:version) new -e $(cat .env | grep "APP_ENV=.*" | cut -d"=" -f 2)'
-    - ssh $STAGING_USER@$STAGING_HOST 'cd backend && sentry-cli releases finalize $(php artisan cattr:version)'
+    - docker pull $CI_REGISTRY_IMAGE:$DOCKER_TAG
+    - docker image tag $CI_REGISTRY_IMAGE:$DOCKER_TAG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
 
-demo_deploy:
-  image: alpine
-  stage: deploy
-  only:
-    - release
-  before_script:
-    - 'which ssh-agent || ( apk add --update openssh )'
-    - eval $(ssh-agent -s)
-    - echo "$DEMO_KEY" | base64 -d | ssh-add -
-    - mkdir ~/.ssh
-    - ssh-keyscan -H $DEMO_HOST >> ~/.ssh/known_hosts
-  script:
-    - ssh $DEMO_USER@$DEMO_HOST 'cd cattr/demo && docker-compose build --no-cache --force-rm demo'
-    - ssh $DEMO_USER@$DEMO_HOST 'cd cattr/demo && docker-compose down -v && docker-compose up -d demo'
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
+  - template: Security/Container-Scanning.gitlab-ci.yml

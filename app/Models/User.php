@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\UserType;
 use App\Scopes\UserScope;
+use App\Mail\ResetPassword;
+use App\Scopes\UserAccessScope;
 use App\Traits\HasRole;
 use Carbon\Carbon;
 use Database\Factories\UserFactory;
@@ -246,7 +248,7 @@ class User extends Authenticatable
     {
         parent::boot();
 
-        static::addGlobalScope(new UserScope);
+        static::addGlobalScope(new UserAccessScope);
     }
 
     public function role(): BelongsTo
@@ -281,21 +283,9 @@ class User extends Authenticatable
             ->where('entity_type', Property::USER_CODE);
     }
 
-    public function scopeAdmin(EloquentBuilder $query): EloquentBuilder
+    public function sendPasswordResetNotification($token): void
     {
-        return $query->where('is_admin', true);
-    }
-
-    public function scopeActive(EloquentBuilder $query): EloquentBuilder
-    {
-        return $query->where('active', true);
-    }
-
-    protected function password(): Attribute
-    {
-        return Attribute::make(
-            set: static fn($value) => Hash::needsRehash($value) ? Hash::make($value) : $value,
-        );
+        $this->notify(new ResetPassword($this->email, $token));
     }
 
     protected function online(): Attribute
@@ -305,5 +295,22 @@ class User extends Authenticatable
                 Carbon::parse($attributes['last_activity'])->diffInSeconds(Carbon::now())
                 < config('app.user_activity.online_status_time'),
         );
+    }
+
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: static fn($value) => Hash::needsRehash($value) ? Hash::make($value) : $value,
+        );
+    }
+
+    public function scopeAdmin(EloquentBuilder $query): EloquentBuilder
+    {
+        return $query->where('is_admin', true);
+    }
+
+    public function scopeActive(EloquentBuilder $query): EloquentBuilder
+    {
+        return $query->where('active', true);
     }
 }

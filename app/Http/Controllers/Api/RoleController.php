@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\Role\ListRoleRequest;
 use Filter;
 use App\Models\Role;
 use Exception;
@@ -12,42 +13,14 @@ use Validator;
 
 class RoleController extends ItemController
 {
-    protected bool $disableQueryRoleCheck = false;
-
-    public static function getControllerRules(): array
-    {
-        return [
-            'index' => 'roles.list',
-            'count' => 'roles.list',
-            'create' => 'roles.create',
-            'edit' => 'roles.edit',
-            'show' => 'roles.show',
-            'destroy' => 'roles.remove',
-            'allowedRules' => 'roles.allowed-rules',
-            'projectRules' => 'roles.allowed-rules',
-            'attachToUser' => 'roles.attach-user',
-            'detachFromUser' => 'roles.detach-user',
-        ];
-    }
-
-    public function getValidationRules(): array
-    {
-        return [
-            'name' => 'required',
-        ];
-    }
-
-    public function getEventUniqueNamePart(): string
-    {
-        return 'role';
-    }
+    protected const MODEL = Role::class;
 
     /**
-     * @param Request $request
+     * @param ListRoleRequest $request
      * @return JsonResponse
      * @throws Exception
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListRoleRequest $request): JsonResponse
     {
         if ($request->get('user_id')) {
             $request->offsetSet('users.id', $request->get('user_id'));
@@ -98,11 +71,6 @@ class RoleController extends ItemController
      * @apiUse          UnauthorizedError
      * @apiUse          ForbiddenError
      */
-
-    public function getItemClass(): string
-    {
-        return Role::class;
-    }
 
     /**
      * @api             {post} /roles/create Create
@@ -171,12 +139,13 @@ class RoleController extends ItemController
      * @apiUse          ForbiddenError
      * @apiUse          UnauthorizedError
      */
-    public function count(Request $request): JsonResponse
+    public function count(ListRoleRequest $request): JsonResponse
     {
         return $this->_count($request);
     }
 
     /**
+     *
      * @api             {post} /roles/show Show
      * @apiDescription  Get Role Entity
      *
