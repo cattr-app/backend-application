@@ -17,14 +17,15 @@
     "ext-gd": "*",
     "ext-json": "*",
     "ext-pdo": "*",
-    "czproject/git-php": "^4.0",
     "bensampo/laravel-enum": "^5.3",
+    "czproject/git-php": "^4.0",
     "doctrine/dbal": "^2.13",
     "erusev/parsedown": "^1.7",
     "fakerphp/faker": "^1.19",
     "flugger/laravel-responder": "dev-master",
     "fruitcake/laravel-cors": "^2.2",
     "grimzy/laravel-mysql-spatial": "^5.0.1",
+    "innocenzi/laravel-vite": "0.2.*",
     "intervention/image": "^2.7",
     "joshbrw/laravel-module-installer": "^2.0",
     "laravel/framework": "^9.3",
@@ -111,6 +112,8 @@
       "url": "https://git.amazingcat.net/api/v4/group/cattr/-/packages/composer/"
     }
   ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
   "extra": {
     "merge-plugin": {
       "include": [

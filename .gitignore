@@ -54,9 +54,11 @@ bootstrap/cache/*
 /schema-directives.graphql
 
 .yarn/*
-!.yarn/cache
+.pnp.*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+public/build/
