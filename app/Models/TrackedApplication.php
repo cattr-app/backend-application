@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Scopes\ScreenshotScope;
+use App\Scopes\TimeIntervalAccessScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -60,7 +60,7 @@ class TrackedApplication extends Model
     {
         parent::boot();
 
-        static::addGlobalScope(new ScreenshotScope);
+        static::addGlobalScope(new TimeIntervalAccessScope);
     }
 
     public function timeInterval(): BelongsTo

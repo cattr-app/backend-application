@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -277,10 +278,9 @@ class User extends Authenticatable
         return $this->hasMany(TimeInterval::class, 'user_id');
     }
 
-    public function properties(): HasMany
+    public function properties(): MorphMany
     {
-        return $this->hasMany(Property::class, 'entity_id')
-            ->where('entity_type', Property::USER_CODE);
+        return $this->morphMany(Property::class, 'entity');
     }
 
     public function sendPasswordResetNotification($token): void
@@ -291,7 +291,7 @@ class User extends Authenticatable
     protected function online(): Attribute
     {
         return Attribute::make(
-            get: static fn($value, $attributes) => $attributes['last_activity'] &&
+            get: static fn($value, $attributes) => ($attributes['last_activity'] ?? false) &&
                 Carbon::parse($attributes['last_activity'])->diffInSeconds(Carbon::now())
                 < config('app.user_activity.online_status_time'),
         );
