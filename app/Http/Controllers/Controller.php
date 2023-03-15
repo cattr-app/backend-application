@@ -22,4 +22,43 @@ class Controller extends BaseController
     {
         return [];
     }
+
+    /**
+     * Laravel router pass to fallback not non-exist urls only but wrong-method requests too.
+     * So required to check if route have alternative request methods
+     * throw not-found or wrong-method exceptions manually
+     * @param Request $request
+     */
+    public function universalRoute(Request $request): void
+    {
+        /** @var Router $router */
+        $router = app('router');
+        /** @var RouteCollection $routes */
+        $routeCollection = $router->getRoutes();
+        /** @var string[] $methods */
+        $methods = array_diff(Router::$verbs, [$request->getMethod(), 'OPTIONS']);
+
+        foreach ($methods as $method) {
+            // Get all routes for method without fallback routes
+            /** @var Route[]|Collection $routes */
+            $routes = collect($routeCollection->get($method))->filter(static function ($route) {
+                /** @var RouteModel $route */
+                return !$route->isFallback && $route->uri !== '{fallbackPlaceholder}';
+            });
+
+            // Look if any route have match with current request
+            $mismatch = $routes->first(static function ($value) use ($request) {
+                /** @var RouteModel $value */
+                return $value->matches($request, false);
+            });
+
+            // Throw wrong-method exception if matches found
+            if ($mismatch !== null) {
+                throw new MethodNotAllowedHttpException([]);
+            }
+        }
+
+        // No matches, throw not-found exception
+        throw new NotFoundHttpException();
+    }
 }
