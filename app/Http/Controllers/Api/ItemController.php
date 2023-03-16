@@ -158,8 +158,8 @@ abstract class ItemController extends Controller
      */
     public function _destroy(CattrFormRequest $request): JsonResponse
     {
-        $requestId = Filter::process(Filter::getRequestFilterName(), $request->validated('id'));
-
+        $requestId = Filter::process(Filter::getRequestFilterName(), $request->validated()['id']);
+        
         throw_unless(is_int($requestId), ValidationException::withMessages(['Invalid id']));
 
         $itemsQuery = $this->getQuery(['where' => ['id' => $requestId]]);
