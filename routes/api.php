@@ -19,7 +19,6 @@ use App\Http\Controllers\InstallationController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\Api\StatusController as ApiStatusController;
-use App\Http\Controllers\Api\TaskActivityController;
 use App\Http\Controllers\Api\TaskCommentController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\StatusController;
@@ -112,6 +111,7 @@ Route::group([
         $router->post('tasks/edit', [TaskController::class, 'edit'])->name('tasks.edit');
         $router->any('tasks/show', [TaskController::class, 'show'])->name('tasks.show');
         $router->post('tasks/remove', [TaskController::class, 'destroy'])->name('tasks.destroy');
+        $router->post('tasks/activity', [TaskController::class, 'getActivity'])->name('task.activity');
 
         // Task comments
         $router->any('task-comment/list', [TaskCommentController::class, 'index'])->name('task_comments.list');
@@ -119,9 +119,6 @@ Route::group([
         $router->post('task-comment/edit', [TaskCommentController::class, 'edit'])->name('task_comments.edit');
         $router->any('task-comment/show', [TaskCommentController::class, 'show'])->name('task_comments.show');
         $router->post('task-comment/remove', [TaskCommentController::class, 'destroy'])->name('task_comments.destroy');
-        
-        //activity
-        $router->post('task-activity/index', [TaskActivityController::class, 'index'])->name('task_activity.index');
 
         //Users routes
         $router->any('users/list', [UserController::class, 'index'])->name('users.list');

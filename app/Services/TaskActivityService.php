@@ -1,18 +1,13 @@
 <?php
+namespace App\Services;
 
-namespace App\Http\Controllers\Api;
-
-use App\Http\Controllers\Controller;
-use App\Http\Requests\TaskActivity\ShowTaskActivityRequest;
 use App\Models\TaskComment;
 use App\Models\TaskHistory;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
-class TaskActivityController extends Controller
+class TaskActivityService
 {
     protected $taskComment;
     protected $taskHistory;
@@ -23,7 +18,7 @@ class TaskActivityController extends Controller
         $this->taskHistory = $taskHistory;
     }
 
-    public function getCollection(string $type,int $taskId): array
+    private function _getCollection(string $type, int $taskId): array
     {
         $comments = $this->taskComment->where('task_id', $taskId)->with('user')->get()->toArray();
         $history = $this->taskHistory->where('task_id', $taskId)->with('user')->get()->toArray();
@@ -37,13 +32,15 @@ class TaskActivityController extends Controller
             $result = $comments;
         }
 
-        foreach ($result as &$item) {
+        $result = array_map(function($item){
             $item['can_change'] = $item['user_id'] === Auth::id();
-        }
+            return $item;
+        },$result);
+
         return $result;
     }
 
-    public function sortCollection(array &$collection, string $sort): void
+    private function _sortCollection(array &$collection, string $sort): void
     {
         usort($collection, function ($a, $b) use ($sort) {
             if ($sort === "desc")
@@ -53,7 +50,7 @@ class TaskActivityController extends Controller
         });
     }
 
-    public function getPaginateCollection(array $collection, int $currentPage, $perPage = 10): LengthAwarePaginator
+    private function _getPaginateCollection(array $collection, int $currentPage, $perPage = 10): LengthAwarePaginator
     {
         $collection = new Collection($collection);
 
@@ -62,14 +59,14 @@ class TaskActivityController extends Controller
         return new LengthAwarePaginator($currentPageSearchResults, count($collection), $perPage);
     }
 
-    public function index(ShowTaskActivityRequest $request): JsonResponse
+    public function getActivity(array $filter): LengthAwarePaginator
     {
-        $searchResults = $this->getCollection($request->get('type'), $request->get('task_id'));
+        $searchResults = $this->_getCollection($filter['type'], $filter['task_id']);
 
-        $this->sortCollection($searchResults, $request->get('sort'));
+        $this->_sortCollection($searchResults, $filter['sort']);
 
-        $paginatedSearchResults = $this->getPaginateCollection($searchResults, $request->get('page'));
+        $paginatedSearchResults = $this->_getPaginateCollection($searchResults, $filter['page']);
 
-        return responder()->success($paginatedSearchResults)->respond();
+        return $paginatedSearchResults;
     }
 }

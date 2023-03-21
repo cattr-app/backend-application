@@ -7,6 +7,7 @@ use App\Http\Requests\Task\DestroyTaskRequest;
 use App\Http\Requests\Task\EditTaskRequest;
 use App\Http\Requests\Task\ListTaskRequest;
 use App\Http\Requests\Task\ShowTaskRequest;
+use App\Http\Requests\TaskActivity\ShowTaskActivityRequest;
 use App\Jobs\SaveTaskEditHistory;
 use App\Models\Priority;
 use App\Models\Project;
@@ -15,6 +16,7 @@ use Filter;
 use App\Models\Task;
 use App\Models\TaskHistory;
 use App\Models\User;
+use App\Services\TaskActivityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -453,5 +455,11 @@ class TaskController extends ItemController
         });
 
         return $this->_show($request);
+    }
+
+    public function getActivity(ShowTaskActivityRequest $request,TaskActivityService $taskActivityService): JsonResponse
+    {
+        $activity = $taskActivityService->getActivity($request->validated());
+        return responder()->success($activity)->respond();
     }
 }
