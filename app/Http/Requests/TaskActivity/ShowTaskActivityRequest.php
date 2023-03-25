@@ -20,7 +20,6 @@ class ShowTaskActivityRequest extends CattrFormRequest
     {
         return array_merge(QueryHelper::getValidationRules(), [
             'page' => 'required|int',
-            'sort' => 'required|string',
             'task_id' => 'required|int',
             'type' => 'required|string',
         ]);
