@@ -46,20 +46,19 @@ class TaskActivityController extends ItemController
         $itemsQuery = $this->getQueryBuilder($requestData, $model);
 
         $items = $itemsQuery->get();
-        
+
         Filter::process(
             Filter::getActionFilterName(),
             $items,
         );
 
-        
         return $items;
     }
 
     private function getCollection(array $requestData): array
     {
         $result = false;
-        
+
         if($requestData['type'] === "all" ) {
             $result = array_merge(
                 $this->getCollectionFromModel($requestData, TaskComment::class)->toArray(),
@@ -101,19 +100,20 @@ class TaskActivityController extends ItemController
     public function index(ShowTaskActivityRequest $request): JsonResponse
     {
         $requestData = Filter::process(Filter::getRequestFilterName(), $request->validated());
-        
+
         Event::dispatch(Filter::getBeforeActionEventName(), $requestData);
-        
+
         if($items = $this->getCollection($requestData)) {
             $this->sortCollection($items, $requestData['orderBy']);
             $items = $this->getPaginateCollection($items, $requestData['page']);
-    
+
             Event::dispatch(Filter::getAfterActionEventName(), [$items, $requestData]);
             return responder()->success($items)->respond();
         }
         else
         {
+            Event::dispatch(Filter::getAfterActionEventName(), [$items, $requestData]);
             responder()->error()->respond(400);
-        };
+        }
     }
 }
