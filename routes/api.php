@@ -19,6 +19,7 @@ use App\Http\Controllers\InstallationController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\Api\StatusController as ApiStatusController;
+use App\Http\Controllers\Api\TaskActivityController;
 use App\Http\Controllers\Api\TaskCommentController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\StatusController;
@@ -111,6 +112,7 @@ Route::group([
         $router->post('tasks/edit', [TaskController::class, 'edit'])->name('tasks.edit');
         $router->any('tasks/show', [TaskController::class, 'show'])->name('tasks.show');
         $router->post('tasks/remove', [TaskController::class, 'destroy'])->name('tasks.destroy');
+        $router->post('tasks/activity', [TaskActivityController::class, 'index'])->name('task.activity');
 
         // Task comments
         $router->any('task-comment/list', [TaskCommentController::class, 'index'])->name('task_comments.list');
